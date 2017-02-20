@@ -1,4 +1,5 @@
-
+# test
+# 
 #' @export
 setGeneric("getFeatures", function(object, ...) {
     standardGeneric("getFeatures")
