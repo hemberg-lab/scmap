@@ -1,4 +1,3 @@
-# test
 
 #' @export
 setGeneric("getFeatures", function(object, ...) {
