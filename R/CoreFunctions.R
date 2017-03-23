@@ -1,85 +1,88 @@
-
-get_common_fsc3_features <- function(objects) {
-    common_features <- NULL
-    for(object in objects) {
-        f_data <- object@featureData@data
-        if(is.null(f_data$feature_symbol)) {
-            message("Every input object has to contain 'feature_symbol' column in the featureData slot! Please check your input objects!")
-            return(NULL)
-        }
-        object_features <- as.character(f_data$feature_symbol)[f_data$fsc3_features]
-        common_features <- c(common_features, object_features)
-    }
-    common_features <- unique(common_features)
-    common_inds <- rep(TRUE, length(common_features))
-    for(object in objects) {
-        f_data <- object@featureData@data
-        inds <- match(common_features, f_data$feature_symbol)
-        common_inds[is.na(inds)] <- FALSE
-    }
-    return(common_features[common_inds])
-}
-
+#' Bimodality is calculated using dip test: https://en.wikipedia.org/wiki/Multimodal_distribution#General_tests
+#' 
+#' @param object_reference reference SCESet set
+#' @param object_to_map SCESet to map
+#' @param buckets_ref reference cell buckets
+#' @param exprs_values expression values to use
+#' @param similarity similarity measure
+#' @param threshold threshold on similarity
+#' @param suppress_plot defines whether to suppress an output plot
+#' 
+#' @importFrom dplyr group_by summarise %>%
+#' @importFrom reshape2 melt dcast
 #' @importFrom scater pData<-
-fsc3_assign_signatures <- function(object_to_assign, object_ref, threshold = 0.7) {
-    # reference object
-    buckets_ref <- unique(object_ref@phenoData@data[, c("fsc3_buckets", "fsc3_buckets_signatures")])
-    # convert factors to strings
-    if(is.factor(buckets_ref$fsc3_buckets)) {
-        buckets_ref$fsc3_buckets <- levels(buckets_ref$fsc3_buckets)[buckets_ref$fsc3_buckets]
-    }
-    # object to assign
-    sigs_to_assign <- object_to_assign@phenoData@data$fsc3_signatures
-
-    buckets_assigned <- NULL
-    for(sig in sigs_to_assign) {
-        sig <- unlist(strsplit(sig, ""))
-        common_bits <- c()
-        for(sig_ref in buckets_ref$fsc3_buckets_signatures) {
-            tmp <- unlist(strsplit(sig_ref, ""))
-            common_bits <- c(common_bits, length(which(tmp == sig))/length(which(tmp != "_")))
+#' @importFrom proxy dist
+#' @importFrom diptest dip.test
+#' @importFrom graphics abline hist plot points
+#' @importFrom stats median
+#' @importFrom utils head
+#' @importFrom mixtools normalmixEM
+#' @importFrom nnet which.is.max
+#' @export
+scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, exprs_values = "exprs", similarity = "cosine", threshold = 1, suppress_plot = TRUE) {
+    
+    gene <- bucket <- exprs <- NULL
+    
+    if(is.null(buckets_ref)) {
+        # calculate median feature expression in every bucket of object_reference
+        buckets <- object_reference@phenoData@data$scmap_buckets
+        if (is.null(buckets)) {
+            warning(paste0("Please run fsc3_get_buckets() on your reference dataset first!"))
+            return(object_to_map)
         }
-        if(max(common_bits) >= threshold) {
-            tmp <- nnet::which.is.max(common_bits)
-            buckets_assigned <- c(buckets_assigned, buckets_ref$fsc3_buckets[tmp])
+        buckets_ref <- object_reference@assayData[[exprs_values]]
+        f_data <- object_reference@featureData@data
+        buckets_ref <- buckets_ref[f_data$fsc3_features, ]
+        colnames(buckets_ref) <- buckets
+        buckets_ref <- reshape2::melt(buckets_ref)
+        colnames(buckets_ref) <- c("gene", "bucket", "exprs")
+        buckets_ref <- buckets_ref %>%
+            group_by(gene, bucket) %>%
+            summarise(
+                med_exprs = median(exprs)
+            )
+        buckets_ref <- reshape2::dcast(buckets_ref, gene ~ bucket, value.var = "med_exprs")
+        rownames(buckets_ref) <- buckets_ref$gene
+        buckets_ref <- buckets_ref[ , 2:ncol(buckets_ref)]
+    }
+    
+    dat <- object_to_map@assayData[[exprs_values]]
+    dat <- dat[rownames(dat) %in% rownames(buckets_ref), ]
+    dat <- dat[order(rownames(dat)), ]
+    
+    buckets_ref <- buckets_ref[rownames(buckets_ref) %in% rownames(dat), ]
+    buckets_ref <- buckets_ref[order(rownames(buckets_ref)), ]
+    buckets_ref <- buckets_ref[,colSums(buckets_ref) > 0]
+    
+    dat <- scale(dat, center = TRUE, scale = TRUE)
+    buckets_ref <- scale(buckets_ref, center = TRUE, scale = TRUE)
+    dat <- t(dat)
+    buckets_ref <- t(buckets_ref)
+    if(similarity == "euclidean") {
+        res <- proxy::dist(buckets_ref, dat, method = "euclidean")
+        res <- matrix(res, ncol = nrow(buckets_ref), byrow = T)
+        res <- res / max(res, na.rm = T) * 2
+    }
+    if(similarity == "cosine") {
+        res <- proxy::dist(buckets_ref, dat, method = "cosine")
+        res <- matrix(res, ncol = nrow(buckets_ref), byrow = T)
+    }
+    min_inds <- unlist(apply(-res, 1, nnet::which.is.max))
+    mins <- unlist(apply(res, 1, min))
+    if(!suppress_plot) {
+        unimod <- diptest::dip.test(mins)$p.value >= 0.05
+        if(unimod) {
+            hist(mins, xlim = c(0, 2), freq = FALSE, xlab = "Normalised distance", ylab = "Density", main = "Distribution of normalised distances")
         } else {
-            buckets_assigned <- c(buckets_assigned, "unassigned")
+            mixmdl = mixtools::normalmixEM(mins)
+            plot(mixmdl, which = 2, xlim = c(0, 2), xlab2 = "Normalised distance", main2 = "Distribution of normalised distances")
         }
     }
-
-    p_data <- object_to_assign@phenoData@data
-    p_data$fsc3_buckets_assigned <- buckets_assigned
-    pData(object_to_assign) <- new("AnnotatedDataFrame", data = p_data)
-
-    return(object_to_assign)
+    buckets_assigned <- rownames(buckets_ref)[min_inds]
+    buckets_assigned[mins > threshold] <- "unassigned"
+    buckets_assigned[is.na(buckets_assigned)] <- "unassigned"
+    p_data <- object_to_map@phenoData@data
+    p_data$scmap_buckets_assigned <- buckets_assigned
+    pData(object_to_map) <- new("AnnotatedDataFrame", data = p_data)
+    return(object_to_map)
 }
-
-fsc3_plot_sig_expression <- function(object, fColumn = NULL, n_cells = 10, hc = NULL) {
-    if(is.null(fColumn)) {
-        warning("Please provide the fColumn argument!")
-        return(object)
-    }
-    p_data <- object@phenoData@data
-    sigs <- p_data$fsc3_signatures[order(p_data[[fColumn]])]
-    mat <- do.call(cbind, lapply(strsplit(sigs, ""), as.numeric))
-    colnames(mat) <- p_data[[fColumn]][order(p_data[[fColumn]])]
-    to_plot <- NULL
-    gaps <- NULL
-    gaps_it <- 0
-    for(i in unique(colnames(mat))) {
-        tmp <- mat[,colnames(mat) == i]
-        if(ncol(tmp) > n_cells) {
-            tmp <- tmp[, sample(1:ncol(tmp), n_cells)]
-        }
-        colnames(tmp) <- rep(i, ncol(tmp))
-        to_plot <- cbind(to_plot, tmp)
-        gaps <- c(gaps, gaps_it + ncol(tmp))
-        gaps_it <- gaps_it + ncol(tmp)
-    }
-    if(is.null(hc)) {
-        phm <- pheatmap::pheatmap(to_plot, cluster_cols = F, gaps_col = gaps)
-    } else {
-        phm <- pheatmap::pheatmap(to_plot, cluster_cols = F, cluster_rows = hc, gaps_col = gaps)
-    }
-}
-

@@ -2,21 +2,27 @@
 % Please edit documentation in R/CoreMethods.R
 \docType{methods}
 \name{getFeatures.SCESet}
-\alias{getFeatures}
-\alias{getFeatures,SCESet-method}
 \alias{getFeatures.SCESet}
+\alias{getFeatures,SCESet-method}
+\alias{getFeatures}
 \title{Define a set of genes used for creating cell binary signatures}
 \usage{
-getFeatures.SCESet(object, n_genes = 100, pct_dropout_min = 20,
+getFeatures.SCESet(object, n_features = 100, pct_dropout_min = 20,
   pct_dropout_max = 80, suppress_plot = T)
 
-\S4method{getFeatures}{SCESet}(object, n_genes = 100, pct_dropout_min = 20,
-  pct_dropout_max = 80, suppress_plot = T)
+\S4method{getFeatures}{SCESet}(object, n_features = 100,
+  pct_dropout_min = 20, pct_dropout_max = 80, suppress_plot = T)
 }
 \arguments{
 \item{object}{an object of 'SCESet' class}
 
-\item{n_genes}{number of the genes to be returned}
+\item{n_features}{number of the genes to be returned}
+
+\item{pct_dropout_min}{lower threshold for dropout rate}
+
+\item{pct_dropout_max}{upper threshold for dropout rate}
+
+\item{suppress_plot}{defines whether to plot the fit}
 }
 \value{
 an object of 'SCESet' class
@@ -28,4 +34,3 @@ http://bioconductor.org/packages/M3Drop). A 'data.frame' with the genes
 and corresponding p and q values is written to the 'hyperplanes' item of the
 'sc3' slot of the input object.
 }
-

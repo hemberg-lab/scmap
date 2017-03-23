@@ -2,9 +2,9 @@
 % Please edit documentation in R/CoreMethods.R
 \docType{methods}
 \name{setFeatures.SCESet}
-\alias{setFeatures}
-\alias{setFeatures,SCESet-method}
 \alias{setFeatures.SCESet}
+\alias{setFeatures,SCESet-method}
+\alias{setFeatures}
 \title{Title}
 \usage{
 setFeatures.SCESet(object, features)
@@ -12,9 +12,10 @@ setFeatures.SCESet(object, features)
 \S4method{setFeatures}{SCESet}(object, features)
 }
 \arguments{
+\item{object}{an object of 'SCESet' class}
+
 \item{features}{a vector of feature names}
 }
 \description{
 Title
 }
-

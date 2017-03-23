@@ -9,8 +9,3 @@ setGeneric("setFeatures", function(object, ...) {
     standardGeneric("setFeatures")
 })
 
-#' @export
-setGeneric("getSignatures", function(object, ...) {
-    standardGeneric("getSignatures")
-})
-

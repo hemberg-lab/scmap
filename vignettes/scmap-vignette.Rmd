@@ -1,0 +1,52 @@
+---
+title: "`scmap` package vignette"
+author: "Vladimir Kiselev"
+date: "`r Sys.Date()`"
+output:
+    BiocStyle::html_document:
+        toc: true
+vignette: >
+  %\VignetteIndexEntry{`scmap` package vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+# Mouse retina datasets
+
+```{r, eval=FALSE}
+library(scater)
+library(irr)
+
+scmap_ref <- readRDS("~/data/shekhar.rds")
+scmap_map <- readRDS("~/data/macosko.rds")
+
+# select features
+scmap_ref <- getFeatures(scmap_ref)
+
+# find and select only common features
+scmap_map <- setFeatures(scmap_map, fData(shekhar)$feature_symbol[fData(shekhar)$scmap_features])
+scmap_ref <- setFeatures(shekhar, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
+
+# define scmap buckets
+p_data <- pData(scmap_ref)
+p_data$scmap_buckets <- p_data$cell_type2
+pData(scmap_ref) <- new("AnnotatedDataFrame", data = p_data)
+
+# main scmap function
+scmap_map <- scmap(
+    scmap_ref, 
+    scmap_map, 
+    exprs_values = "exprs", 
+    similarity = "cosine", 
+    threshold = 0.7, 
+    suppress_plot = FALSE
+)
+
+# quantify the mapping
+labs_orig <- as.character(pData(scmap_map)$cell_type1)
+labs_new <- pData(scmap_map)$scmap_buckets_assigned
+# Cohen's Kappa coefficient
+kappa2(cbind(labs_orig, labs_new))$value
+# Sankey diagram
+plot_sankey(labs_orig, labs_new)
+```

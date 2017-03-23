@@ -1,3 +1,4 @@
+#' @importFrom scater newSCESet is_exprs<- calculateQCMetrics
 fsc3_merge_datasets <- function(object_reference, object_to_map, exprs_values = "exprs", cell_type_name = "stage") {
     if(class(object_reference) != "SCESet" | class(object_to_map) != "SCESet") {
         warning("Your arguments are not of `SCESet` class!")
@@ -25,14 +26,14 @@ fsc3_merge_datasets <- function(object_reference, object_to_map, exprs_values = 
     
     
     cell_type <- c(as.character(object_reference@phenoData@data[[cell_type_name]]),
-        as.character(data_to_map@phenoData@data$fsc3_buckets_assigned))
+        as.character(dat_to_map@phenoData@data$fsc3_buckets_assigned))
     
     p_data <- res_sceset@phenoData@data
     p_data <- cbind(p_data, cell_type)
     pData(res_sceset) <- new("AnnotatedDataFrame", data = p_data)
     
     res_sceset <- res_sceset[, p_data$cell_type != "unassigned"]
-    is_exprs(res_sceset) <- exprs(res_sceset) > 0
+    is_exprs(res_sceset) <- dataset <- res_sceset@assayData[["exprs"]] > 0
     res_sceset <- calculateQCMetrics(res_sceset)
     
     f_data <- res_sceset@featureData@data
