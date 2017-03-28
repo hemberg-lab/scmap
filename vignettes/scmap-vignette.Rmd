@@ -24,8 +24,8 @@ scmap_map <- readRDS("~/data/macosko.rds")
 scmap_ref <- getFeatures(scmap_ref)
 
 # find and select only common features
-scmap_map <- setFeatures(scmap_map, fData(shekhar)$feature_symbol[fData(shekhar)$scmap_features])
-scmap_ref <- setFeatures(shekhar, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
+scmap_map <- setFeatures(scmap_map, fData(scmap_ref)$feature_symbol[fData(scmap_ref)$scmap_features])
+scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
 
 # define scmap buckets
 p_data <- pData(scmap_ref)
@@ -50,3 +50,55 @@ kappa2(cbind(labs_orig, labs_new))$value
 # Sankey diagram
 plot_sankey(labs_orig, labs_new)
 ```
+
+# Human pancreas
+
+```{r, eval=FALSE}
+library(scater)
+library(irr)
+
+baron <- readRDS("~/data/baron-human.rds")
+muraro <- readRDS("~/data/muraro.rds")
+segerstolpe <- readRDS("~/data/segerstolpe.rds")
+
+# unify cell type annotations
+# segerstolpe@phenoData@data$cell_type1 <- 
+#     unlist(lapply(strsplit(pData(segerstolpe)$cell_type1, " cell"), "[[", 1))
+segerstolpe <- segerstolpe[,pData(segerstolpe)$cell_type1 != "not applicable"]
+# muraro@phenoData@data$cell_type1[muraro@phenoData@data$cell_type1 == "duct"] <- "ductal"
+# muraro@phenoData@data$cell_type1[muraro@phenoData@data$cell_type1 == "pp"] <- "gamma"
+
+scmap_ref <- baron
+scmap_map <- muraro
+
+# select features
+scmap_ref <- getFeatures(scmap_ref)
+
+# find and select only common features
+scmap_map <- setFeatures(scmap_map, fData(scmap_ref)$feature_symbol[fData(scmap_ref)$scmap_features])
+scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
+
+# define scmap buckets
+p_data <- pData(scmap_ref)
+p_data$scmap_buckets <- p_data$cell_type1
+pData(scmap_ref) <- new("AnnotatedDataFrame", data = p_data)
+
+# main scmap function
+scmap_map <- scmap(
+    scmap_ref, 
+    scmap_map, 
+    exprs_values = "exprs", 
+    similarity = "cosine", 
+    threshold = 0.7, 
+    suppress_plot = FALSE
+)
+
+# quantify the mapping
+labs_orig <- as.character(pData(scmap_map)$cell_type1)
+labs_new <- pData(scmap_map)$scmap_buckets_assigned
+# Cohen's Kappa coefficient
+kappa2(cbind(labs_orig, labs_new))$value
+# Sankey diagram
+plot_sankey(labs_orig, labs_new)
+```
+

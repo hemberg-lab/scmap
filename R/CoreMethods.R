@@ -77,7 +77,7 @@ setMethod("getFeatures", signature(object = "SCESet"), function(object, n_featur
 #'
 #' @export
 setFeatures.SCESet <- function(object, features) {
-    inds <- match(features, featureNames(object))
+    inds <- match(features, object@featureData@data$feature_symbol)
 
     if(!all(!is.na(inds))) {
         message(paste0("Features ", paste(features[which(is.na(inds))], collapse = ", "), " are not present in the 'SCESet' object and therefore were not set."))

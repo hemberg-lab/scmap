@@ -27,12 +27,13 @@ scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, ex
         # calculate median feature expression in every bucket of object_reference
         buckets <- object_reference@phenoData@data$scmap_buckets
         if (is.null(buckets)) {
-            warning(paste0("Please run fsc3_get_buckets() on your reference dataset first!"))
+            warning(paste0("Please define scmap buckets first!"))
             return(object_to_map)
         }
         buckets_ref <- object_reference@assayData[[exprs_values]]
+        rownames(buckets_ref) <- object_reference@featureData@data$feature_symbol
         f_data <- object_reference@featureData@data
-        buckets_ref <- buckets_ref[f_data$fsc3_features, ]
+        buckets_ref <- buckets_ref[f_data$scmap_features, ]
         colnames(buckets_ref) <- buckets
         buckets_ref <- reshape2::melt(buckets_ref)
         colnames(buckets_ref) <- c("gene", "bucket", "exprs")
@@ -47,6 +48,7 @@ scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, ex
     }
     
     dat <- object_to_map@assayData[[exprs_values]]
+    rownames(dat) <- object_to_map@featureData@data$feature_symbol
     dat <- dat[rownames(dat) %in% rownames(buckets_ref), ]
     dat <- dat[order(rownames(dat)), ]
     
