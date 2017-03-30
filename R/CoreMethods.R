@@ -24,8 +24,8 @@ getFeatures.SCESet <- function(object, n_features = 100, pct_dropout_min = 20, p
     f_data <- object@featureData@data
 
     # do not consider ERCC spike-ins and genes with 0 dropout rate
-    dropouts_filter <- which(f_data$pct_dropout != 0 & !grepl("ERCC-", featureNames(object)))
-    dropouts <- log10(f_data$pct_dropout[dropouts_filter])
+    dropouts_filter <- which(f_data$pct_dropout != 0 & !grepl("ERCC-", object@featureData@data$feature_symbol))
+    dropouts <- log2(f_data$pct_dropout[dropouts_filter])
     expression <- f_data$mean_exprs[dropouts_filter]
 
     fit <- lm(dropouts ~ expression)
@@ -50,7 +50,7 @@ getFeatures.SCESet <- function(object, n_features = 100, pct_dropout_min = 20, p
     fData(object) <- new("AnnotatedDataFrame", data = f_data)
 
     if(!suppress_plot) {
-        plot(expression, dropouts, xlab = "log2(Expression)", ylab = "log10(% of dropouts)")
+        plot(expression, dropouts, xlab = "log2(Expression)", ylab = "log2(% of dropouts)")
         points(expression[gene_inds], dropouts[gene_inds], col = "red")
         abline(fit, col = "red")
     }
@@ -73,7 +73,6 @@ setMethod("getFeatures", signature(object = "SCESet"), function(object, n_featur
 #'
 #' @importFrom scater fData<-
 #' @importFrom methods new
-#' @importFrom Biobase featureNames
 #'
 #' @export
 setFeatures.SCESet <- function(object, features) {

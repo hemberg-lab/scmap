@@ -34,6 +34,7 @@ scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, ex
         rownames(buckets_ref) <- object_reference@featureData@data$feature_symbol
         f_data <- object_reference@featureData@data
         buckets_ref <- buckets_ref[f_data$scmap_features, ]
+        buckets_ref <- buckets_ref[!duplicated(rownames(buckets_ref)), ]
         colnames(buckets_ref) <- buckets
         buckets_ref <- reshape2::melt(buckets_ref)
         colnames(buckets_ref) <- c("gene", "bucket", "exprs")
@@ -49,6 +50,7 @@ scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, ex
     
     dat <- object_to_map@assayData[[exprs_values]]
     rownames(dat) <- object_to_map@featureData@data$feature_symbol
+    dat <- dat[!duplicated(rownames(dat)), ]
     dat <- dat[rownames(dat) %in% rownames(buckets_ref), ]
     dat <- dat[order(rownames(dat)), ]
     
@@ -72,13 +74,13 @@ scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, ex
     min_inds <- unlist(apply(-res, 1, nnet::which.is.max))
     mins <- unlist(apply(res, 1, min))
     if(!suppress_plot) {
-        unimod <- diptest::dip.test(mins)$p.value >= 0.05
-        if(unimod) {
+        # unimod <- diptest::dip.test(mins)$p.value >= 0.05
+        # if(unimod) {
             hist(mins, xlim = c(0, 2), freq = FALSE, xlab = "Normalised distance", ylab = "Density", main = "Distribution of normalised distances")
-        } else {
-            mixmdl = mixtools::normalmixEM(mins)
-            plot(mixmdl, which = 2, xlim = c(0, 2), xlab2 = "Normalised distance", main2 = "Distribution of normalised distances")
-        }
+        # } else {
+        #     mixmdl = mixtools::normalmixEM(mins)
+        #     plot(mixmdl, which = 2, xlim = c(0, 2), xlab2 = "Normalised distance", main2 = "Distribution of normalised distances")
+        # }
     }
     buckets_assigned <- rownames(buckets_ref)[min_inds]
     buckets_assigned[mins > threshold] <- "unassigned"
