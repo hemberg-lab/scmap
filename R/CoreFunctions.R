@@ -19,11 +19,12 @@
 #' @importFrom mixtools normalmixEM
 #' @importFrom nnet which.is.max
 #' @export
-scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, exprs_values = "exprs", similarity = "cosine", threshold = 1, suppress_plot = TRUE) {
+scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, exprs_values = "exprs", 
+    similarity = "cosine", threshold = 1, suppress_plot = TRUE) {
     
     gene <- bucket <- exprs <- NULL
     
-    if(is.null(buckets_ref)) {
+    if (is.null(buckets_ref)) {
         # calculate median feature expression in every bucket of object_reference
         buckets <- object_reference@phenoData@data$scmap_buckets
         if (is.null(buckets)) {
@@ -38,14 +39,10 @@ scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, ex
         colnames(buckets_ref) <- buckets
         buckets_ref <- reshape2::melt(buckets_ref)
         colnames(buckets_ref) <- c("gene", "bucket", "exprs")
-        buckets_ref <- buckets_ref %>%
-            group_by(gene, bucket) %>%
-            summarise(
-                med_exprs = median(exprs)
-            )
+        buckets_ref <- buckets_ref %>% group_by(gene, bucket) %>% summarise(med_exprs = median(exprs))
         buckets_ref <- reshape2::dcast(buckets_ref, gene ~ bucket, value.var = "med_exprs")
         rownames(buckets_ref) <- buckets_ref$gene
-        buckets_ref <- buckets_ref[ , 2:ncol(buckets_ref)]
+        buckets_ref <- buckets_ref[, 2:ncol(buckets_ref)]
     }
     
     dat <- object_to_map@assayData[[exprs_values]]
@@ -56,31 +53,29 @@ scmap <- function(object_reference = NULL, object_to_map, buckets_ref = NULL, ex
     
     buckets_ref <- buckets_ref[rownames(buckets_ref) %in% rownames(dat), ]
     buckets_ref <- buckets_ref[order(rownames(buckets_ref)), ]
-    buckets_ref <- buckets_ref[,colSums(buckets_ref) > 0]
+    buckets_ref <- buckets_ref[, colSums(buckets_ref) > 0]
     
     dat <- scale(dat, center = TRUE, scale = TRUE)
     buckets_ref <- scale(buckets_ref, center = TRUE, scale = TRUE)
     dat <- t(dat)
     buckets_ref <- t(buckets_ref)
-    if(similarity == "euclidean") {
+    if (similarity == "euclidean") {
         res <- proxy::dist(buckets_ref, dat, method = "euclidean")
         res <- matrix(res, ncol = nrow(buckets_ref), byrow = T)
-        res <- res / max(res, na.rm = T) * 2
+        res <- res/max(res, na.rm = T) * 2
     }
-    if(similarity == "cosine") {
+    if (similarity == "cosine") {
         res <- proxy::dist(buckets_ref, dat, method = "cosine")
         res <- matrix(res, ncol = nrow(buckets_ref), byrow = T)
     }
     min_inds <- unlist(apply(-res, 1, nnet::which.is.max))
     mins <- unlist(apply(res, 1, min))
-    if(!suppress_plot) {
-        # unimod <- diptest::dip.test(mins)$p.value >= 0.05
-        # if(unimod) {
-            hist(mins, xlim = c(0, 2), freq = FALSE, xlab = "Normalised distance", ylab = "Density", main = "Distribution of normalised distances")
-        # } else {
-        #     mixmdl = mixtools::normalmixEM(mins)
-        #     plot(mixmdl, which = 2, xlim = c(0, 2), xlab2 = "Normalised distance", main2 = "Distribution of normalised distances")
-        # }
+    if (!suppress_plot) {
+        # unimod <- diptest::dip.test(mins)$p.value >= 0.05 if(unimod) {
+        hist(mins, xlim = c(0, 2), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
+            main = "Distribution of normalised distances")
+        # } else { mixmdl = mixtools::normalmixEM(mins) plot(mixmdl, which = 2, xlim = c(0, 2),
+        # xlab2 = 'Normalised distance', main2 = 'Distribution of normalised distances') }
     }
     buckets_assigned <- rownames(buckets_ref)[min_inds]
     buckets_assigned[mins > threshold] <- "unassigned"

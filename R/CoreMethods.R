@@ -29,9 +29,9 @@
 #' @importFrom stats lm
 #'
 #' @export
-getFeatures.scater <- function(object, n_features = 100, pct_dropout_min = 20, 
-                               pct_dropout_max = 80, suppress_plot = TRUE) {
-    if(is.null(object@featureData@data$feature_symbol)) {
+getFeatures.scater <- function(object, n_features = 100, pct_dropout_min = 20, pct_dropout_max = 80, 
+    suppress_plot = TRUE) {
+    if (is.null(object@featureData@data$feature_symbol)) {
         message("There is no feature_symbol column in the featureData slot! 
                 Please create one and then run this function again. Please note
                 that feature symbols in the reference dataset must correpond 
@@ -41,39 +41,27 @@ getFeatures.scater <- function(object, n_features = 100, pct_dropout_min = 20,
     }
     
     f_data <- object@featureData@data
-
+    
     # do not consider ERCC spike-ins and genes with 0 dropout rate
     dropouts_filter <- which(f_data$pct_dropout != 0 & !grepl("ERCC-", object@featureData@data$feature_symbol))
     dropouts <- log2(f_data$pct_dropout[dropouts_filter])
     expression <- f_data$mean_exprs[dropouts_filter]
-
+    
     fit <- lm(dropouts ~ expression)
-    gene_inds <- as.numeric(
-        names(
-            head(
-                sort(
-                    fit$residuals[
-                        fit$residuals > 0 &
-                        f_data$pct_dropout[dropouts_filter] > pct_dropout_min &
-                        f_data$pct_dropout[dropouts_filter] < pct_dropout_max
-                    ],
-                    decreasing = T
-                ),
-                n_features
-            )
-        )
-    )
-
+    gene_inds <- as.numeric(names(head(sort(fit$residuals[fit$residuals > 0 & f_data$pct_dropout[dropouts_filter] > 
+        pct_dropout_min & f_data$pct_dropout[dropouts_filter] < pct_dropout_max], decreasing = T), 
+        n_features)))
+    
     f_data$scmap_features <- FALSE
     f_data$scmap_features[dropouts_filter[gene_inds]] <- TRUE
     fData(object) <- new("AnnotatedDataFrame", data = f_data)
-
-    if(!suppress_plot) {
+    
+    if (!suppress_plot) {
         plot(expression, dropouts, xlab = "log2(Expression)", ylab = "log2(% of dropouts)")
         points(expression[gene_inds], dropouts[gene_inds], col = "red")
         abline(fit, col = "red")
     }
-
+    
     return(object)
 }
 
@@ -81,7 +69,8 @@ getFeatures.scater <- function(object, n_features = 100, pct_dropout_min = 20,
 #' @aliases getFeatures
 #' @importClassesFrom scater SCESet
 #' @export
-setMethod("getFeatures", signature(object = "SCESet"), function(object, n_features = 100, pct_dropout_min = 20, pct_dropout_max = 80, suppress_plot = T) {
+setMethod("getFeatures", signature(object = "SCESet"), function(object, n_features = 100, 
+    pct_dropout_min = 20, pct_dropout_max = 80, suppress_plot = T) {
     getFeatures.scater(object, n_features, pct_dropout_min, pct_dropout_max, suppress_plot)
 })
 
@@ -106,7 +95,7 @@ setMethod("getFeatures", signature(object = "SCESet"), function(object, n_featur
 #'
 #' @export
 setFeatures.scater <- function(object, features) {
-    if(is.null(object@featureData@data$feature_symbol)) {
+    if (is.null(object@featureData@data$feature_symbol)) {
         message("There is no feature_symbol column in the featureData slot! 
                 Please create one and then run this function again. Please note
                 that feature symbols in the reference dataset must correpond 
@@ -116,15 +105,16 @@ setFeatures.scater <- function(object, features) {
     }
     
     inds <- match(features, object@featureData@data$feature_symbol)
-
-    if(!all(!is.na(inds))) {
-        message(paste0("Features ", paste(features[which(is.na(inds))], collapse = ", "), " are not present in the 'SCESet' object and therefore were not set."))
+    
+    if (!all(!is.na(inds))) {
+        message(paste0("Features ", paste(features[which(is.na(inds))], collapse = ", "), 
+            " are not present in the 'SCESet' object and therefore were not set."))
     }
     f_data <- object@featureData@data
     f_data$scmap_features <- FALSE
     f_data$scmap_features[inds[!is.na(inds)]] <- TRUE
     fData(object) <- new("AnnotatedDataFrame", data = f_data)
-
+    
     return(object)
 }
 
