@@ -51,62 +51,7 @@ kappa2(cbind(labs_orig, labs_new))$value
 plot_sankey(labs_orig, labs_new)
 ```
 
-# Human pancreas
-
-```{r, eval=FALSE}
-library(scater)
-library(irr)
-
-baron_h <- readRDS("~/data/baron-human.rds")
-baron_m <- readRDS("~/data/baron-mouse.rds")
-muraro <- readRDS("~/data/muraro.rds")
-segerstolpe <- readRDS("~/data/segerstolpe.rds")
-
-# unify cell type annotations
-# segerstolpe@phenoData@data$cell_type1 <- 
-#     unlist(lapply(strsplit(pData(segerstolpe)$cell_type1, " cell"), "[[", 1))
-segerstolpe <- segerstolpe[,pData(segerstolpe)$cell_type1 != "not applicable"]
-# muraro@phenoData@data$cell_type1[muraro@phenoData@data$cell_type1 == "duct"] <- "ductal"
-# muraro@phenoData@data$cell_type1[muraro@phenoData@data$cell_type1 == "pp"] <- "gamma"
-
-# uppercase mouse genes
-baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feature_symbol)
-
-scmap_ref <- baron_m
-scmap_map <- baron_h
-
-# select features
-scmap_ref <- getFeatures(scmap_ref)
-
-# find and select only common features
-scmap_map <- setFeatures(scmap_map, fData(scmap_ref)$feature_symbol[fData(scmap_ref)$scmap_features])
-scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
-
-# define scmap buckets
-p_data <- pData(scmap_ref)
-p_data$scmap_buckets <- p_data$cell_type1
-pData(scmap_ref) <- new("AnnotatedDataFrame", data = p_data)
-
-# main scmap function
-scmap_map <- scmap(
-    scmap_ref, 
-    scmap_map, 
-    exprs_values = "exprs", 
-    similarity = "cosine", 
-    threshold = 0.7, 
-    suppress_plot = FALSE
-)
-
-# quantify the mapping
-labs_orig <- as.character(pData(scmap_map)$cell_type1)
-labs_new <- pData(scmap_map)$scmap_buckets_assigned
-# Cohen's Kappa coefficient
-kappa2(cbind(labs_orig, labs_new))$value
-# Sankey diagram
-plot_sankey(labs_orig, labs_new)
-```
-
-# Benchmarking
+# Human pancreas and benchmarking
 
 ```{r, eval=FALSE}
 library(scater)
@@ -129,35 +74,27 @@ xin <- xin[,pData(xin)$cell_type1 != "gamma.contaminated"]
 # uppercase mouse genes
 baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feature_symbol)
 
-scmap_ref <- baron_m
-scmap_map <- zeisel
+scmap_ref <- muraro
+scmap_map <- segerstolpe
 
 # select features
-scmap_ref <- getFeatures(scmap_ref, n_features = 100, suppress_plot = F)
+scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE)
 # scmap_ref@featureData@data$scmap_features <- TRUE
 
 # find and select only common features
 scmap_map <- setFeatures(scmap_map, fData(scmap_ref)$feature_symbol[fData(scmap_ref)$scmap_features])
 scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
 
-# define scmap buckets
-p_data <- pData(scmap_ref)
-p_data$scmap_buckets <- p_data$cell_type1
-pData(scmap_ref) <- new("AnnotatedDataFrame", data = p_data)
-
 # main scmap function
-scmap_map <- scmap(
+scmap_map <- mapData(
+    scmap_map,
     scmap_ref, 
-    scmap_map, 
-    exprs_values = "exprs", 
-    similarity = "cosine", 
-    threshold = 0.7, 
     suppress_plot = FALSE
 )
 
 # quantify the mapping
 labs_orig <- as.character(pData(scmap_map)$cell_type1)
-labs_new <- pData(scmap_map)$scmap_buckets_assigned
+labs_new <- pData(scmap_map)$scmap_labs
 # Cohen's Kappa coefficient
 kappa2(cbind(labs_orig, labs_new))$value
 # Sankey diagram

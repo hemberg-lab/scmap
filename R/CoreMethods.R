@@ -24,13 +24,15 @@
 #' \code{featureData} slot which is called \code{scmap_features}. It can be accessible
 #' either by \code{fData(object)$scmap_features} or by \code{object@featureData@data$scmap_features}
 #'
+#' @name getFeatures
+#'
 #' @importFrom scater fData<-
 #' @importFrom methods new
 #' @importFrom stats lm
 #'
 #' @export
-getFeatures.scater <- function(object, n_features = 100, pct_dropout_min = 20, pct_dropout_max = 80, 
-    suppress_plot = TRUE) {
+getFeatures.SCESet <- function(object, n_features, pct_dropout_min, pct_dropout_max, 
+    suppress_plot) {
     if (is.null(object@featureData@data$feature_symbol)) {
         message("There is no feature_symbol column in the featureData slot! 
                 Please create one and then run this function again. Please note
@@ -65,13 +67,13 @@ getFeatures.scater <- function(object, n_features = 100, pct_dropout_min = 20, p
     return(object)
 }
 
-#' @rdname getFeatures.scater
+#' @rdname getFeatures
 #' @aliases getFeatures
 #' @importClassesFrom scater SCESet
 #' @export
-setMethod("getFeatures", signature(object = "SCESet"), function(object, n_features = 100, 
-    pct_dropout_min = 20, pct_dropout_max = 80, suppress_plot = T) {
-    getFeatures.scater(object, n_features, pct_dropout_min, pct_dropout_max, suppress_plot)
+setMethod("getFeatures", signature(object = "SCESet"), function(object, n_features, 
+    pct_dropout_min, pct_dropout_max, suppress_plot) {
+    getFeatures.SCESet(object, n_features, pct_dropout_min, pct_dropout_max, suppress_plot)
 })
 
 #' Set the most important features (genes/transcripts) for mapping
@@ -84,17 +86,23 @@ setMethod("getFeatures", signature(object = "SCESet"), function(object, n_featur
 #' in the mapping dataset, otherwise the mapping will not work!
 #'
 #' @param object an object of \code{\link[scater]{SCESet}} class
-#' @param features a vector of feature names
+#' @param features a character vector of feature names
 #' 
 #' @return an object of \code{\link[scater]{SCESet}} class with a new column in 
 #' \code{featureData} slot which is called \code{scmap_features}. It can be accessible
 #' either by \code{fData(object)$scmap_features} or by \code{object@featureData@data$scmap_features}
 #'
+#' @name setFeatures
+#'
 #' @importFrom scater fData<-
 #' @importFrom methods new
 #'
 #' @export
-setFeatures.scater <- function(object, features) {
+setFeatures.SCESet <- function(object, features) {
+    if (is.null(features)) {
+        message("Please provide a list of feature names using 'features' argument!")
+        return(object)        
+    }
     if (is.null(object@featureData@data$feature_symbol)) {
         message("There is no feature_symbol column in the featureData slot! 
                 Please create one and then run this function again. Please note
@@ -118,12 +126,117 @@ setFeatures.scater <- function(object, features) {
     return(object)
 }
 
-#' @rdname setFeatures.scater
+#' @rdname setFeatures
 #' @aliases setFeatures
 #' @importClassesFrom scater SCESet
 #' @export
 setMethod("setFeatures", signature(object = "SCESet"), function(object, features) {
-    setFeatures.scater(object, features)
+    setFeatures.SCESet(object, features)
 })
 
+#' scmap main function
+#' 
+#' @param object_map SCESet to map
+#' @param object_ref reference SCESet set
+#' @param class_col column name in the pData slot of the reference SCESet containing the cell classification information
+#' @param class_ref reference cell buckets
+#' @param threshold threshold on similarity
+#' @param suppress_plot defines whether to suppress an output plot
+#' 
+#' @name mapData
+#' 
+#' @importFrom dplyr group_by summarise %>%
+#' @importFrom reshape2 melt dcast
+#' @importFrom scater pData<- get_exprs
+#' @importFrom proxy dist
+#' @importFrom graphics abline hist plot points
+#' @importFrom stats median
+#' @importFrom utils head
+#' @importFrom nnet which.is.max
+#' @export
+mapData.SCESet <- function(object_map, object_ref, class_col, class_ref,
+                  threshold, suppress_plot) {
+    if (is.null(object_map)) {
+        warning(paste0("Please define a scater object to map using the `object_map` parameter!"))
+        return(object_map)
+    }
+    if (is.null(object_ref)) {
+        if (is.null(class_ref)) {
+            warning(paste0("Please define either a reference scater object using the `object_ref` parameter or scmap reference buckets using the `class_ref`!"))
+            return(object_map)
+        }
+    }
+    
+    if (!class_col %in% colnames(object_ref@phenoData@data)) {
+        warning(paste0("Please define a correct class column of the reference scater object pData slot using the `class_col` parameter!"))
+        return(object_map)
+    }
+    
+    gene <- cell_class <- exprs <- NULL
+    
+    if (is.null(class_ref)) {
+        # calculate median feature expression in every cell class of object_ref
+        classes <- object_ref@phenoData@data[[class_col]]
+        if (is.null(classes)) {
+            warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
+            return(object_map)
+        }
+        class_ref <- get_exprs(object_ref, "exprs")
+        rownames(class_ref) <- object_ref@featureData@data$feature_symbol
+        f_data <- object_ref@featureData@data
+        class_ref <- class_ref[f_data$scmap_features, ]
+        class_ref <- class_ref[!duplicated(rownames(class_ref)), ]
+        colnames(class_ref) <- classes
+        class_ref <- reshape2::melt(class_ref)
+        colnames(class_ref) <- c("gene", "cell_class", "exprs")
+        class_ref <- class_ref %>% group_by(gene, cell_class) %>% summarise(med_exprs = median(exprs))
+        class_ref <- reshape2::dcast(class_ref, gene ~ cell_class, value.var = "med_exprs")
+        rownames(class_ref) <- class_ref$gene
+        class_ref <- class_ref[, 2:ncol(class_ref)]
+    }
+    
+    dat <- get_exprs(object_map, "exprs")
+    rownames(dat) <- object_map@featureData@data$feature_symbol
+    dat <- dat[!duplicated(rownames(dat)), ]
+    dat <- dat[rownames(dat) %in% rownames(class_ref), ]
+    dat <- dat[order(rownames(dat)), ]
+    
+    class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
+    class_ref <- class_ref[order(rownames(class_ref)), ]
+    class_ref <- class_ref[, colSums(class_ref) > 0]
+    
+    dat <- scale(dat, center = TRUE, scale = TRUE)
+    class_ref <- scale(class_ref, center = TRUE, scale = TRUE)
+    dat <- t(dat)
+    class_ref <- t(class_ref)
+    
+    res <- proxy::dist(class_ref, dat, method = "cosine")
+    res <- matrix(res, ncol = nrow(class_ref), byrow = T)
+    
+    min_inds <- unlist(apply(-res, 1, nnet::which.is.max))
+    mins <- unlist(apply(res, 1, min))
+
+    if (!suppress_plot) {
+        hist(mins, xlim = c(0, 2), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
+             main = "Distribution of normalised distances")
+    }
+    buckets_assigned <- rownames(class_ref)[min_inds]
+    buckets_assigned[mins > threshold] <- "unassigned"
+    buckets_assigned[is.na(buckets_assigned)] <- "unassigned"
+    p_data <- object_map@phenoData@data
+    p_data$scmap_labs <- buckets_assigned
+    p_data$scmap_dists <- mins
+    pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
+    return(object_map)
+}
+
+#' @aliases mapData
+#' @importClassesFrom scater SCESet
+#' @export
+setMethod("mapData", signature(object_map = "SCESet"), 
+          function(object_map, object_ref, class_col, class_ref,
+                                                          threshold, suppress_plot) {
+    mapData.SCESet(object_map, object_ref, class_col, class_ref,
+                 threshold, suppress_plot)
+})
 

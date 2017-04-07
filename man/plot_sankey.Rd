@@ -18,7 +18,7 @@ plot_sankey(reference, clusters, plot_width = 400, plot_height = 600,
 
 \item{colors}{colors of the links between two clusterings. If defined please
 note that each cluster in the reference clustering has to have its own color.
-This should be a normal text vector, e.g. c("#FF0000", "#FFA500", "#008000")}
+This should be a normal text vector, e.g. c('#FF0000', '#FFA500', '#008000')}
 }
 \description{
 Sometimes it is useful to see how the clusters in two different clustering
