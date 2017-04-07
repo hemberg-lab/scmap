@@ -219,11 +219,11 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, thresho
         hist(mins, xlim = c(0, 2), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
             main = "Distribution of normalised distances")
     }
-    buckets_assigned <- rownames(class_ref)[min_inds]
-    buckets_assigned[mins > threshold] <- "unassigned"
-    buckets_assigned[is.na(buckets_assigned)] <- "unassigned"
+    class_assigned <- rownames(class_ref)[min_inds]
+    class_assigned[mins > threshold] <- "unassigned"
+    class_assigned[is.na(class_assigned)] <- "unassigned"
     p_data <- object_map@phenoData@data
-    p_data$scmap_labs <- buckets_assigned
+    p_data$scmap_labs <- class_assigned
     p_data$scmap_dists <- mins
     pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     return(object_map)
