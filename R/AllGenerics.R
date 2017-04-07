@@ -10,7 +10,7 @@ setGeneric("setFeatures", function(object, features = NULL) {
 })
 
 #' @export
-setGeneric("mapData", function(object_map = NULL, object_ref = NULL, class_col = "cell_type1", class_ref = NULL,
-                             threshold = 0.7, suppress_plot = TRUE) {
+setGeneric("mapData", function(object_map = NULL, object_ref = NULL, class_col = "cell_type1", 
+    class_ref = NULL, threshold = 0.7, suppress_plot = TRUE) {
     standardGeneric("mapData")
 })

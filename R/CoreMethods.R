@@ -71,8 +71,8 @@ getFeatures.SCESet <- function(object, n_features, pct_dropout_min, pct_dropout_
 #' @aliases getFeatures
 #' @importClassesFrom scater SCESet
 #' @export
-setMethod("getFeatures", signature(object = "SCESet"), function(object, n_features, 
-    pct_dropout_min, pct_dropout_max, suppress_plot) {
+setMethod("getFeatures", signature(object = "SCESet"), function(object, n_features, pct_dropout_min, 
+    pct_dropout_max, suppress_plot) {
     getFeatures.SCESet(object, n_features, pct_dropout_min, pct_dropout_max, suppress_plot)
 })
 
@@ -101,7 +101,7 @@ setMethod("getFeatures", signature(object = "SCESet"), function(object, n_featur
 setFeatures.SCESet <- function(object, features) {
     if (is.null(features)) {
         message("Please provide a list of feature names using 'features' argument!")
-        return(object)        
+        return(object)
     }
     if (is.null(object@featureData@data$feature_symbol)) {
         message("There is no feature_symbol column in the featureData slot! 
@@ -154,8 +154,7 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' @importFrom utils head
 #' @importFrom nnet which.is.max
 #' @export
-mapData.SCESet <- function(object_map, object_ref, class_col, class_ref,
-                  threshold, suppress_plot) {
+mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, threshold, suppress_plot) {
     if (is.null(object_map)) {
         warning(paste0("Please define a scater object to map using the `object_map` parameter!"))
         return(object_map)
@@ -215,10 +214,10 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref,
     
     min_inds <- unlist(apply(-res, 1, nnet::which.is.max))
     mins <- unlist(apply(res, 1, min))
-
+    
     if (!suppress_plot) {
         hist(mins, xlim = c(0, 2), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
-             main = "Distribution of normalised distances")
+            main = "Distribution of normalised distances")
     }
     buckets_assigned <- rownames(class_ref)[min_inds]
     buckets_assigned[mins > threshold] <- "unassigned"
@@ -233,10 +232,8 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref,
 #' @aliases mapData
 #' @importClassesFrom scater SCESet
 #' @export
-setMethod("mapData", signature(object_map = "SCESet"), 
-          function(object_map, object_ref, class_col, class_ref,
-                                                          threshold, suppress_plot) {
-    mapData.SCESet(object_map, object_ref, class_col, class_ref,
-                 threshold, suppress_plot)
+setMethod("mapData", signature(object_map = "SCESet"), function(object_map, object_ref, 
+    class_col, class_ref, threshold, suppress_plot) {
+    mapData.SCESet(object_map, object_ref, class_col, class_ref, threshold, suppress_plot)
 })
 
