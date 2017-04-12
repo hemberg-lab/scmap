@@ -2,9 +2,9 @@
 
 export(getFeatures)
 export(getFeatures.SCESet)
+export(getSankey)
 export(mapData)
 export(mapData.SCESet)
-export(plot_sankey)
 export(setFeatures)
 export(setFeatures.SCESet)
 exportMethods(getFeatures)

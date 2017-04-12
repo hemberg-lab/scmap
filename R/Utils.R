@@ -19,7 +19,7 @@
 #' @importFrom googleVis gvisSankey
 #' 
 #' @export
-plot_sankey <- function(reference, clusters, plot_width = 400, plot_height = 600, colors = NULL) {
+getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, colors = NULL) {
     Var1 <- value <- NULL
     res.all <- NULL
     for (j in names(table(reference))) {
@@ -81,5 +81,5 @@ plot_sankey <- function(reference, clusters, plot_width = 400, plot_height = 600
             }, "iterations:0
             }")))
     
-    plot(Sankey)
+    return(Sankey)
 }
