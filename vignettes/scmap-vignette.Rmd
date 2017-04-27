@@ -11,50 +11,11 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-# Mouse retina datasets
+# Run scmap
 
 ```{r, eval=FALSE}
 library(scater)
-library(irr)
-
-scmap_ref <- readRDS("~/data/shekhar.rds")
-scmap_map <- readRDS("~/data/macosko.rds")
-
-# select features
-scmap_ref <- getFeatures(scmap_ref)
-
-# find and select only common features
-scmap_map <- setFeatures(scmap_map, fData(scmap_ref)$feature_symbol[fData(scmap_ref)$scmap_features])
-scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
-
-# define scmap buckets
-p_data <- pData(scmap_ref)
-p_data$scmap_buckets <- p_data$cell_type2
-pData(scmap_ref) <- new("AnnotatedDataFrame", data = p_data)
-
-# main scmap function
-scmap_map <- scmap(
-    scmap_ref, 
-    scmap_map, 
-    exprs_values = "exprs", 
-    similarity = "cosine", 
-    threshold = 0.7, 
-    suppress_plot = FALSE
-)
-
-# quantify the mapping
-labs_orig <- as.character(pData(scmap_map)$cell_type1)
-labs_new <- pData(scmap_map)$scmap_buckets_assigned
-# Cohen's Kappa coefficient
-kappa2(cbind(labs_orig, labs_new))$value
-# Sankey diagram
-plot_sankey(labs_orig, labs_new)
-```
-
-# Human pancreas and benchmarking
-
-```{r, eval=FALSE}
-library(scater)
+library(scmap)
 library(irr)
 
 baron_h <- readRDS("~/data/baron-human.rds")
@@ -63,6 +24,13 @@ muraro <- readRDS("~/data/muraro.rds")
 segerstolpe <- readRDS("~/data/segerstolpe.rds")
 xin <- readRDS("~/data/xin.rds")
 pollen <- readRDS("~/data/pollen.rds")
+deng <- readRDS("~/data/deng-rpkms.rds")
+biase <- readRDS("~/data/biase.rds")
+goolam <- readRDS("~/data/goolam.rds")
+fan <- readRDS("~/data/fan.rds")
+
+shekhar <- readRDS("~/data/shekhar.rds")
+macosko <- readRDS("~/data/macosko.rds")
 
 # unify cell type annotations
 segerstolpe <- segerstolpe[,pData(segerstolpe)$cell_type1 != "not applicable"]
@@ -74,8 +42,8 @@ xin <- xin[,pData(xin)$cell_type1 != "gamma.contaminated"]
 # uppercase mouse genes
 baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feature_symbol)
 
-scmap_ref <- muraro
-scmap_map <- segerstolpe
+scmap_ref <- deng
+scmap_map <- goolam
 
 # select features
 scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE)
@@ -88,7 +56,9 @@ scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_
 # main scmap function
 scmap_map <- mapData(
     scmap_map,
-    scmap_ref, 
+    scmap_ref,
+    similarity = "pearson",
+    threshold = 0.7,
     suppress_plot = FALSE
 )
 
@@ -98,5 +68,91 @@ labs_new <- pData(scmap_map)$scmap_labs
 # Cohen's Kappa coefficient
 kappa2(cbind(labs_orig, labs_new))$value
 # Sankey diagram
-plot_sankey(labs_orig, labs_new)
+plot(getSankey(labs_orig, labs_new))
+```
+
+# Merge
+
+```{r, eval=FALSE}
+scmap_ref <- baron_h
+scmap_map <- muraro
+
+# select features
+# scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE)
+scmap_ref@featureData@data$scmap_features <- TRUE
+
+# find and select only common features
+scmap_map <- setFeatures(scmap_map, fData(scmap_ref)$feature_symbol[fData(scmap_ref)$scmap_features])
+scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
+
+# main scmap function
+scmap_map <- mapData(
+    scmap_map,
+    scmap_ref,
+    # class_col = "cell_type2",
+    threshold = 0.7,
+    suppress_plot = FALSE
+)
+
+labs_orig <- as.character(pData(scmap_map)$cell_type1)
+labs_new <- pData(scmap_map)$scmap_labs
+# Cohen's Kappa coefficient
+kappa2(cbind(labs_orig, labs_new))$value
+# Sankey diagram
+plot(getSankey(labs_orig, labs_new))
+
+scmap_ref1 <- mergeData(scmap_ref, scmap_map)
+scmap_map1 <- segerstolpe
+
+# select features
+# scmap_ref1 <- setFeatures(scmap_ref1, rownames(fData(scmap_ref))[fData(scmap_ref)$scmap_features])
+scmap_ref1@featureData@data$scmap_features <- TRUE
+
+# find and select only common features
+scmap_map1 <- setFeatures(scmap_map1, fData(scmap_ref1)$feature_symbol[fData(scmap_ref1)$scmap_features])
+scmap_ref1 <- setFeatures(scmap_ref1, fData(scmap_map1)$feature_symbol[fData(scmap_map1)$scmap_features])
+
+# main scmap function
+scmap_map1 <- mapData(
+    scmap_map1,
+    scmap_ref1,
+    # class_col = "cell_type2",
+    threshold = 0.7,
+    suppress_plot = FALSE
+)
+
+labs_orig1 <- as.character(pData(scmap_map1)$cell_type1)
+labs_new1 <- pData(scmap_map1)$scmap_labs
+# Cohen's Kappa coefficient
+kappa2(cbind(labs_orig1, labs_new1))$value
+# Sankey diagram
+plot(getSankey(labs_orig1, labs_new1))
+
+scmap_ref2 <- mergeData(scmap_ref1, scmap_map1)
+scmap_map2 <- xin
+
+# select features
+scmap_ref2 <- setFeatures(scmap_ref2, rownames(fData(scmap_ref1))[fData(scmap_ref1)$scmap_features])
+
+# find and select only common features
+scmap_map2 <- setFeatures(scmap_map2, fData(scmap_ref2)$feature_symbol[fData(scmap_ref2)$scmap_features])
+scmap_ref2 <- setFeatures(scmap_ref2, fData(scmap_map2)$feature_symbol[fData(scmap_map2)$scmap_features])
+
+# main scmap function
+scmap_map2 <- mapData(
+    scmap_map2,
+    scmap_ref2,
+    # class_col = "cell_type2",
+    threshold = 0.7,
+    suppress_plot = FALSE
+)
+
+labs_orig2 <- as.character(pData(scmap_map2)$cell_type1)
+labs_new2 <- pData(scmap_map2)$scmap_labs
+# Cohen's Kappa coefficient
+kappa2(cbind(labs_orig2, labs_new2))$value
+# Sankey diagram
+plot(getSankey(labs_orig2, labs_new2))
+
+
 ```

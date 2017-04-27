@@ -136,11 +136,15 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 
 #' scmap main function
 #' 
+#' Mapping of one dataset to another
+#' 
 #' @param object_map SCESet to map
 #' @param object_ref reference SCESet set
 #' @param class_col column name in the pData slot of the reference SCESet containing the cell classification information
 #' @param class_ref reference cell buckets
+#' @param similarity similarity measure
 #' @param threshold threshold on similarity
+#' @param scale_exprs scale expression or not?
 #' @param suppress_plot defines whether to suppress an output plot
 #' 
 #' @name mapData
@@ -153,8 +157,9 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' @importFrom stats median
 #' @importFrom utils head
 #' @importFrom nnet which.is.max
+#' @importFrom stats cor
 #' @export
-mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, threshold, suppress_plot) {
+mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similarity, threshold, scale_exprs, suppress_plot) {
     if (is.null(object_map)) {
         warning(paste0("Please define a scater object to map using the `object_map` parameter!"))
         return(object_map)
@@ -204,36 +209,54 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, thresho
     class_ref <- class_ref[order(rownames(class_ref)), ]
     class_ref <- class_ref[, colSums(class_ref) > 0]
     
-    dat <- scale(dat, center = TRUE, scale = TRUE)
-    class_ref <- scale(class_ref, center = TRUE, scale = TRUE)
-    dat <- t(dat)
-    class_ref <- t(class_ref)
+    if(scale_exprs) {
+        dat <- scale(dat, center = TRUE, scale = TRUE)
+        class_ref <- scale(class_ref, center = TRUE, scale = TRUE)
+    }
     
-    res <- proxy::dist(class_ref, dat, method = "cosine")
-    res <- matrix(res, ncol = nrow(class_ref), byrow = T)
+    original_classes <- colnames(class_ref)
     
-    min_inds <- unlist(apply(-res, 1, nnet::which.is.max))
-    mins <- unlist(apply(res, 1, min))
+    if (similarity == "cosine") {
+        dat <- t(dat)
+        class_ref <- t(class_ref)
+        res <- proxy::simil(class_ref, dat, method = "cosine")
+        res <- matrix(res, ncol = nrow(class_ref), byrow = T)
+        max_inds <- unlist(apply(res, 1, nnet::which.is.max))
+        maxs <- unlist(apply(res, 1, max))
+    }
+    
+    if (similarity == "pearson") {
+        res <- cor(class_ref, dat, method = "pearson")
+        max_inds <- unlist(apply(res, 2, nnet::which.is.max))
+        maxs <- unlist(apply(res, 2, max))
+    }
+    
+    if (similarity == "spearman") {
+        res <- cor(class_ref, dat, method = "spearman")
+        max_inds <- unlist(apply(res, 2, nnet::which.is.max))
+        maxs <- unlist(apply(res, 2, max))
+    }
     
     if (!suppress_plot) {
-        hist(mins, xlim = c(0, 2), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
+        hist(maxs, xlim = c(-1, 1), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
             main = "Distribution of normalised distances")
     }
-    class_assigned <- rownames(class_ref)[min_inds]
-    class_assigned[mins > threshold] <- "unassigned"
+    class_assigned <- original_classes[max_inds]
+    class_assigned[maxs < threshold] <- "unassigned"
     class_assigned[is.na(class_assigned)] <- "unassigned"
     p_data <- object_map@phenoData@data
     p_data$scmap_labs <- class_assigned
-    p_data$scmap_dists <- mins
+    p_data$scmap_siml <- maxs
     pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     return(object_map)
 }
 
+#' @rdname mapData
 #' @aliases mapData
 #' @importClassesFrom scater SCESet
 #' @export
 setMethod("mapData", signature(object_map = "SCESet"), function(object_map, object_ref, 
-    class_col, class_ref, threshold, suppress_plot) {
-    mapData.SCESet(object_map, object_ref, class_col, class_ref, threshold, suppress_plot)
+    class_col, class_ref, similarity, threshold, scale_exprs, suppress_plot) {
+    mapData.SCESet(object_map, object_ref, class_col, class_ref, similarity, threshold, scale_exprs, suppress_plot)
 })
 
