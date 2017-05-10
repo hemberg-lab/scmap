@@ -29,6 +29,9 @@ biase <- readRDS("~/data/biase.rds")
 goolam <- readRDS("~/data/goolam.rds")
 fan <- readRDS("~/data/fan.rds")
 
+klein <- readRDS("~/data/klein.rds")
+zeisel <- readRDS("~/data/zeisel.rds")
+
 shekhar <- readRDS("~/data/shekhar.rds")
 macosko <- readRDS("~/data/macosko.rds")
 
@@ -42,11 +45,11 @@ xin <- xin[,pData(xin)$cell_type1 != "gamma.contaminated"]
 # uppercase mouse genes
 baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feature_symbol)
 
-scmap_ref <- deng
-scmap_map <- goolam
+scmap_ref <- klein
+scmap_map <- zeisel
 
 # select features
-scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE)
+scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE, n_features = 100)
 # scmap_ref@featureData@data$scmap_features <- TRUE
 
 # find and select only common features
@@ -57,8 +60,8 @@ scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_
 scmap_map <- mapData(
     scmap_map,
     scmap_ref,
-    similarity = "pearson",
-    threshold = 0.7,
+    similarity = "cosine",
+    threshold = 0.5,
     suppress_plot = FALSE
 )
 

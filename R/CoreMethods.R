@@ -171,6 +171,11 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similar
         }
     }
     
+    if (all(!object_ref@featureData@data$scmap_features)) {
+        warning(paste0("There are no features that can be used for mapping, please check your feature selection step!"))
+        return(object_map)
+    }
+    
     if (!class_col %in% colnames(object_ref@phenoData@data)) {
         warning(paste0("Please define a correct class column of the reference scater object pData slot using the `class_col` parameter!"))
         return(object_map)
