@@ -221,32 +221,49 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similar
     
     original_classes <- colnames(class_ref)
     
-    if (similarity == "cosine") {
-        dat <- t(dat)
-        class_ref <- t(class_ref)
-        res <- proxy::simil(class_ref, dat, method = "cosine")
-        res <- matrix(res, ncol = nrow(class_ref), byrow = T)
-        max_inds <- unlist(apply(res, 1, nnet::which.is.max))
-        maxs <- unlist(apply(res, 1, max))
-    }
+    # if (similarity == "cosine") {
+    tmp <- t(class_ref)
+    res <- proxy::simil(tmp, t(dat), method = "cosine")
+    res <- matrix(res, ncol = nrow(tmp), byrow = T)
+    max_inds1 <- unlist(apply(res, 1, nnet::which.is.max))
+    maxs1 <- unlist(apply(res, 1, max))
+    # }
     
-    if (similarity == "pearson") {
-        res <- cor(class_ref, dat, method = "pearson")
-        max_inds <- unlist(apply(res, 2, nnet::which.is.max))
-        maxs <- unlist(apply(res, 2, max))
-    }
+    # if (similarity == "pearson") {
+    res <- cor(class_ref, dat, method = "pearson")
+    max_inds2 <- unlist(apply(res, 2, nnet::which.is.max))
+    maxs2 <- unlist(apply(res, 2, max))
+    # }
     
-    if (similarity == "spearman") {
-        res <- cor(class_ref, dat, method = "spearman")
-        max_inds <- unlist(apply(res, 2, nnet::which.is.max))
-        maxs <- unlist(apply(res, 2, max))
-    }
+    # if (similarity == "spearman") {
+    res <- cor(class_ref, dat, method = "spearman")
+    max_inds3 <- unlist(apply(res, 2, nnet::which.is.max))
+    maxs3 <- unlist(apply(res, 2, max))
+    # }
     
     if (!suppress_plot) {
         hist(maxs, xlim = c(-1, 1), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
-            main = "Distribution of normalised distances")
+             main = "Distribution of normalised distances")
     }
-    class_assigned <- original_classes[max_inds]
+    
+    tmp <- cbind(
+        original_classes[max_inds1],
+        original_classes[max_inds2],
+        original_classes[max_inds3]
+    )
+    
+    class_assigned <- tmp[,1]
+    class_assigned[apply(tmp, 1, function(x) (length(unique(x)) != 1))] <- "unassigned"
+    
+    maxs <- cbind(
+        maxs1,
+        maxs2,
+        maxs3
+    )
+    
+    maxs <- apply(maxs, 1, min)
+    
+    # class_assigned <- original_classes[max_inds]
     class_assigned[maxs < threshold] <- "unassigned"
     class_assigned[is.na(class_assigned)] <- "unassigned"
     p_data <- object_map@phenoData@data
