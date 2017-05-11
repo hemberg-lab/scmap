@@ -241,11 +241,6 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similar
     maxs3 <- unlist(apply(res, 2, max))
     # }
     
-    if (!suppress_plot) {
-        hist(maxs, xlim = c(-1, 1), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
-             main = "Distribution of normalised distances")
-    }
-    
     tmp <- cbind(
         original_classes[max_inds1],
         original_classes[max_inds2],
@@ -261,7 +256,12 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similar
         maxs3
     )
     
-    maxs <- apply(maxs, 1, min)
+    maxs <- apply(maxs, 1, max)
+    
+    if (!suppress_plot) {
+        hist(maxs, xlim = c(-1, 1), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
+             main = "Distribution of normalised distances")
+    }
     
     # class_assigned <- original_classes[max_inds]
     class_assigned[maxs < threshold] <- "unassigned"

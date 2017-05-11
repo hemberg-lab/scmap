@@ -30,7 +30,9 @@ goolam <- readRDS("~/data/goolam.rds")
 fan <- readRDS("~/data/fan.rds")
 
 klein <- readRDS("~/data/klein.rds")
+
 zeisel <- readRDS("~/data/zeisel.rds")
+usoskin <- readRDS("~/data/usoskin.rds")
 
 shekhar <- readRDS("~/data/shekhar.rds")
 macosko <- readRDS("~/data/macosko.rds")
