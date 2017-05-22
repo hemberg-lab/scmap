@@ -214,6 +214,11 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similar
     class_ref <- class_ref[order(rownames(class_ref)), ]
     class_ref <- class_ref[, colSums(class_ref) > 0]
     
+    if (ncol(class_ref) == 0) {
+        warning(paste0("Median expression in the selected features is 0 in every cell, please redefine your features!"))
+        return(object_map)
+    }
+    
     if(scale_exprs) {
         dat <- scale(dat, center = TRUE, scale = TRUE)
         class_ref <- scale(class_ref, center = TRUE, scale = TRUE)
