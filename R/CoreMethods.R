@@ -171,8 +171,8 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similar
         }
     }
     
-    if (all(!object_ref@featureData@data$scmap_features)) {
-        warning(paste0("There are no features that can be used for mapping, please check your feature selection step!"))
+    if (length(which(object_ref@featureData@data$scmap_features)) < 2) {
+        warning("There are no common features between the Reference and Projection datasets! Either check that both datasets are from the same organism or increase the number of selected features (>100).")
         return(object_map)
     }
     
