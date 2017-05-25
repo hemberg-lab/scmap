@@ -47,8 +47,8 @@ xin <- xin[,pData(xin)$cell_type1 != "gamma.contaminated"]
 # uppercase mouse genes
 baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feature_symbol)
 
-scmap_ref <- klein
-scmap_map <- zeisel
+scmap_ref <- goolam
+scmap_map <- deng
 
 # select features
 scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE, n_features = 100)
@@ -63,8 +63,8 @@ scmap_map <- mapData(
     scmap_map,
     scmap_ref,
     similarity = "cosine",
-    threshold = 0.5,
-    suppress_plot = FALSE
+    threshold = 0.5
+    # suppress_plot = FALSE
 )
 
 # quantify the mapping

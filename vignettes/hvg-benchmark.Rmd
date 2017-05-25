@@ -1,0 +1,15 @@
+---
+title: "Comparison of scmap with HVG"
+author: "Vladimir Kiselev"
+date: "16 May 2017"
+output: html_document
+---
+
+```{r}
+library(M3Drop)
+
+d <- readRDS("~/data/baron-human.rds")
+
+HVG <- BrenneckeGetVariableGenes(2^(exprs(d)) - 1)
+```
+

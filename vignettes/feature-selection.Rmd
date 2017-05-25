@@ -1,0 +1,48 @@
+---
+title: "Explanation of feature selection plots"
+author: "Vladimir Kiselev"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Finding linear dependance between expression and dropout rate
+
+```{r}
+d <- readRDS("~/data/pollen.rds")
+# this data is already log-transformed: log2(values + 1)
+data <- exprs(d)
+# dropout rate per gene
+drpts1 <- log2(rowSums(data == 0)/ncol(data)*100)
+# mean expression per gene
+mexprs1 <- rowSums(data)/ncol(data)
+plot(mexprs1, drpts1)
+```
+
+## scater terms
+
+In scater terms the same plot can be reproduced using the following code:
+```{r}
+f_data <- d@featureData@data
+drpts2 <- log2(f_data$pct_dropout)
+mexprs2 <- f_data$mean_exprs
+plot(mexprs2, drpts2)
+```
+
+## What about cells?
+
+```{r}
+d <- readRDS("~/data/baron-human.rds")
+# this data is already log-transformed: log2(values + 1)
+data <- exprs(d)
+# dropout rate per gene
+drpts3 <- colSums(data == 0)/nrow(data)*100
+# mean expression per gene
+mexprs3 <- colSums(data)/nrow(data)
+fit <- lm(drpts3 ~ mexprs3)
+print(coef(fit))
+plot(mexprs3, drpts3)
+```
