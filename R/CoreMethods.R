@@ -59,8 +59,8 @@ getFeatures.SCESet <- function(object, n_features, pct_dropout_min, pct_dropout_
     fData(object) <- new("AnnotatedDataFrame", data = f_data)
     
     if (!suppress_plot) {
-        plot(expression, dropouts, xlab = "log2(Expression)", ylab = "log2(% of dropouts)")
-        points(expression[gene_inds], dropouts[gene_inds], col = "red")
+        plot(expression, dropouts, xlab = "log2(Expression)", ylab = "log2(% of dropouts)", pch = 16, cex = 0.2)
+        points(expression[gene_inds], dropouts[gene_inds], col = "red", pch = 16, cex = 0.7)
         abline(fit, col = "red")
     }
     
@@ -159,7 +159,7 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' @importFrom nnet which.is.max
 #' @importFrom stats cor
 #' @export
-mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similarity, threshold, scale_exprs, suppress_plot) {
+mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method, similarity, threshold, scale_exprs, suppress_plot) {
     if (is.null(object_map)) {
         warning(paste0("Please define a scater object to map using the `object_map` parameter!"))
         return(object_map)
@@ -181,10 +181,105 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similar
         return(object_map)
     }
     
-    gene <- cell_class <- exprs <- NULL
+    if (method == "scmap") {
+        gene <- cell_class <- exprs <- NULL
+        
+        if (is.null(class_ref)) {
+            # calculate median feature expression in every cell class of object_ref
+            classes <- object_ref@phenoData@data[[class_col]]
+            if (is.null(classes)) {
+                warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
+                return(object_map)
+            }
+            class_ref <- get_exprs(object_ref, "exprs")
+            rownames(class_ref) <- object_ref@featureData@data$feature_symbol
+            f_data <- object_ref@featureData@data
+            class_ref <- class_ref[f_data$scmap_features, ]
+            class_ref <- class_ref[!duplicated(rownames(class_ref)), ]
+            colnames(class_ref) <- classes
+            class_ref <- reshape2::melt(class_ref)
+            colnames(class_ref) <- c("gene", "cell_class", "exprs")
+            class_ref <- class_ref %>% group_by(gene, cell_class) %>% summarise(med_exprs = median(exprs))
+            class_ref <- reshape2::dcast(class_ref, gene ~ cell_class, value.var = "med_exprs")
+            rownames(class_ref) <- class_ref$gene
+            class_ref <- class_ref[, 2:ncol(class_ref)]
+        }
+        
+        dat <- get_exprs(object_map, "exprs")
+        rownames(dat) <- object_map@featureData@data$feature_symbol
+        dat <- dat[!duplicated(rownames(dat)), ]
+        dat <- dat[rownames(dat) %in% rownames(class_ref), ]
+        dat <- dat[order(rownames(dat)), ]
+        
+        class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
+        class_ref <- class_ref[order(rownames(class_ref)), ]
+        class_ref <- class_ref[, colSums(class_ref) > 0]
+        
+        if (ncol(class_ref) == 0) {
+            warning(paste0("Median expression in the selected features is 0 in every cell, please redefine your features!"))
+            return(object_map)
+        }
+        
+        if(scale_exprs) {
+            dat <- scale(dat, center = TRUE, scale = TRUE)
+            class_ref <- scale(class_ref, center = TRUE, scale = TRUE)
+        }
+        
+        original_classes <- colnames(class_ref)
+        
+        # if (similarity == "cosine") {
+        tmp <- t(class_ref)
+        res <- proxy::simil(tmp, t(dat), method = "cosine")
+        res <- matrix(res, ncol = nrow(tmp), byrow = T)
+        max_inds1 <- unlist(apply(res, 1, nnet::which.is.max))
+        maxs1 <- unlist(apply(res, 1, max))
+        # }
+        
+        # if (similarity == "pearson") {
+        res <- cor(class_ref, dat, method = "pearson")
+        max_inds2 <- unlist(apply(res, 2, nnet::which.is.max))
+        maxs2 <- unlist(apply(res, 2, max))
+        # }
+        
+        # if (similarity == "spearman") {
+        res <- cor(class_ref, dat, method = "spearman")
+        max_inds3 <- unlist(apply(res, 2, nnet::which.is.max))
+        maxs3 <- unlist(apply(res, 2, max))
+        # }
+        
+        tmp <- cbind(
+            original_classes[max_inds1],
+            original_classes[max_inds2],
+            original_classes[max_inds3]
+        )
+        
+        class_assigned <- tmp[,1]
+        class_assigned[apply(tmp, 1, function(x) (length(unique(x)) != 1))] <- "unassigned"
+        
+        maxs <- cbind(
+            maxs1,
+            maxs2,
+            maxs3
+        )
+        
+        maxs <- apply(maxs, 1, max)
+        
+        if (!suppress_plot) {
+            hist(maxs, xlim = c(-1, 1), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
+                 main = "Distribution of normalised distances")
+        }
+        
+        # class_assigned <- original_classes[max_inds]
+        class_assigned[maxs < threshold] <- "unassigned"
+        class_assigned[is.na(class_assigned)] <- "unassigned"
+        p_data <- object_map@phenoData@data
+        p_data$scmap_labs <- class_assigned
+        p_data$scmap_siml <- maxs
+        pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
+    }
     
-    if (is.null(class_ref)) {
-        # calculate median feature expression in every cell class of object_ref
+    if (method == "svm") {
+        
         classes <- object_ref@phenoData@data[[class_col]]
         if (is.null(classes)) {
             warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
@@ -196,85 +291,53 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similar
         class_ref <- class_ref[f_data$scmap_features, ]
         class_ref <- class_ref[!duplicated(rownames(class_ref)), ]
         colnames(class_ref) <- classes
-        class_ref <- reshape2::melt(class_ref)
-        colnames(class_ref) <- c("gene", "cell_class", "exprs")
-        class_ref <- class_ref %>% group_by(gene, cell_class) %>% summarise(med_exprs = median(exprs))
-        class_ref <- reshape2::dcast(class_ref, gene ~ cell_class, value.var = "med_exprs")
-        rownames(class_ref) <- class_ref$gene
-        class_ref <- class_ref[, 2:ncol(class_ref)]
+        
+        dat <- get_exprs(object_map, "exprs")
+        rownames(dat) <- object_map@featureData@data$feature_symbol
+        dat <- dat[!duplicated(rownames(dat)), ]
+        dat <- dat[rownames(dat) %in% rownames(class_ref), ]
+        dat <- dat[order(rownames(dat)), ]
+        
+        class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
+        class_ref <- class_ref[order(rownames(class_ref)), ]
+        
+        res <- support_vector_machines(class_ref, dat)
+
+        p_data <- object_map@phenoData@data
+        p_data$scmap_labs <- as.character(res)
+        pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     }
     
-    dat <- get_exprs(object_map, "exprs")
-    rownames(dat) <- object_map@featureData@data$feature_symbol
-    dat <- dat[!duplicated(rownames(dat)), ]
-    dat <- dat[rownames(dat) %in% rownames(class_ref), ]
-    dat <- dat[order(rownames(dat)), ]
-    
-    class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
-    class_ref <- class_ref[order(rownames(class_ref)), ]
-    class_ref <- class_ref[, colSums(class_ref) > 0]
-    
-    if (ncol(class_ref) == 0) {
-        warning(paste0("Median expression in the selected features is 0 in every cell, please redefine your features!"))
-        return(object_map)
+    if (method == "rf") {
+        
+        classes <- object_ref@phenoData@data[[class_col]]
+        if (is.null(classes)) {
+            warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
+            return(object_map)
+        }
+        class_ref <- get_exprs(object_ref, "exprs")
+        rownames(class_ref) <- object_ref@featureData@data$feature_symbol
+        f_data <- object_ref@featureData@data
+        class_ref <- class_ref[f_data$scmap_features, ]
+        class_ref <- class_ref[!duplicated(rownames(class_ref)), ]
+        colnames(class_ref) <- classes
+        
+        dat <- get_exprs(object_map, "exprs")
+        rownames(dat) <- object_map@featureData@data$feature_symbol
+        dat <- dat[!duplicated(rownames(dat)), ]
+        dat <- dat[rownames(dat) %in% rownames(class_ref), ]
+        dat <- dat[order(rownames(dat)), ]
+        
+        class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
+        class_ref <- class_ref[order(rownames(class_ref)), ]
+        
+        res <- random_forest(class_ref, dat)
+        
+        p_data <- object_map@phenoData@data
+        p_data$scmap_labs <- as.character(res)
+        pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     }
     
-    if(scale_exprs) {
-        dat <- scale(dat, center = TRUE, scale = TRUE)
-        class_ref <- scale(class_ref, center = TRUE, scale = TRUE)
-    }
-    
-    original_classes <- colnames(class_ref)
-    
-    # if (similarity == "cosine") {
-    tmp <- t(class_ref)
-    res <- proxy::simil(tmp, t(dat), method = "cosine")
-    res <- matrix(res, ncol = nrow(tmp), byrow = T)
-    max_inds1 <- unlist(apply(res, 1, nnet::which.is.max))
-    maxs1 <- unlist(apply(res, 1, max))
-    # }
-    
-    # if (similarity == "pearson") {
-    res <- cor(class_ref, dat, method = "pearson")
-    max_inds2 <- unlist(apply(res, 2, nnet::which.is.max))
-    maxs2 <- unlist(apply(res, 2, max))
-    # }
-    
-    # if (similarity == "spearman") {
-    res <- cor(class_ref, dat, method = "spearman")
-    max_inds3 <- unlist(apply(res, 2, nnet::which.is.max))
-    maxs3 <- unlist(apply(res, 2, max))
-    # }
-    
-    tmp <- cbind(
-        original_classes[max_inds1],
-        original_classes[max_inds2],
-        original_classes[max_inds3]
-    )
-    
-    class_assigned <- tmp[,1]
-    class_assigned[apply(tmp, 1, function(x) (length(unique(x)) != 1))] <- "unassigned"
-    
-    maxs <- cbind(
-        maxs1,
-        maxs2,
-        maxs3
-    )
-    
-    maxs <- apply(maxs, 1, max)
-    
-    if (!suppress_plot) {
-        hist(maxs, xlim = c(-1, 1), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
-             main = "Distribution of normalised distances")
-    }
-    
-    # class_assigned <- original_classes[max_inds]
-    class_assigned[maxs < threshold] <- "unassigned"
-    class_assigned[is.na(class_assigned)] <- "unassigned"
-    p_data <- object_map@phenoData@data
-    p_data$scmap_labs <- class_assigned
-    p_data$scmap_siml <- maxs
-    pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     return(object_map)
 }
 
@@ -283,7 +346,7 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, similar
 #' @importClassesFrom scater SCESet
 #' @export
 setMethod("mapData", signature(object_map = "SCESet"), function(object_map, object_ref, 
-    class_col, class_ref, similarity, threshold, scale_exprs, suppress_plot) {
-    mapData.SCESet(object_map, object_ref, class_col, class_ref, similarity, threshold, scale_exprs, suppress_plot)
+    class_col, class_ref, method, similarity, threshold, scale_exprs, suppress_plot) {
+    mapData.SCESet(object_map, object_ref, class_col, class_ref, method, similarity, threshold, scale_exprs, suppress_plot)
 })
 

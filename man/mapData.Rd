@@ -8,12 +8,13 @@
 \alias{mapData}
 \title{scmap main function}
 \usage{
-mapData.SCESet(object_map, object_ref, class_col, class_ref, similarity,
+mapData.SCESet(object_map, object_ref, class_col, class_ref, method, similarity,
   threshold, scale_exprs, suppress_plot)
 
 \S4method{mapData}{SCESet}(object_map = NULL, object_ref = NULL,
-  class_col = "cell_type1", class_ref = NULL, similarity = "cosine",
-  threshold = 0.7, scale_exprs = FALSE, suppress_plot = TRUE)
+  class_col = "cell_type1", class_ref = NULL, method = "scmap",
+  similarity = "cosine", threshold = 0.7, scale_exprs = FALSE,
+  suppress_plot = TRUE)
 }
 \arguments{
 \item{object_map}{SCESet to map}

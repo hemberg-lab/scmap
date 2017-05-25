@@ -83,3 +83,30 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
     
     return(Sankey)
 }
+
+#' @importFrom e1071 svm
+#' @importFrom stats predict
+support_vector_machines <- function(train, study, kern = "linear") {
+    train <- t(train)
+    labs <- factor(rownames(train))
+    rownames(train) <- NULL
+    model <- tryCatch(e1071::svm(train, labs, kernel = kern), error = function(cond) return(NA))
+    pred <- stats::predict(model, t(study))
+    return(pred = pred)
+}
+
+#' @importFrom randomForest randomForest
+#' @importFrom stats predict
+random_forest <- function(train, study, ntree = 50) {
+    train <- t(train)
+    train <- as.data.frame(train)
+    y <- as.factor(rownames(train))
+    study <- t(study)
+    study <- as.data.frame(study)
+    rownames(train) <- NULL
+    rownames(study) <- NULL
+    train_rf <- randomForest::randomForest(x = train, y = y, ntree = ntree)
+    Prediction <- stats::predict(train_rf, study)
+    return(Prediction)
+}
+
