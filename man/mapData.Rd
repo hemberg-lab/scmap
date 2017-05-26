@@ -13,7 +13,7 @@ mapData.SCESet(object_map, object_ref, class_col, class_ref, method, similarity,
 
 \S4method{mapData}{SCESet}(object_map = NULL, object_ref = NULL,
   class_col = "cell_type1", class_ref = NULL, method = "scmap",
-  similarity = "cosine", threshold = 0.7, scale_exprs = FALSE,
+  similarity = "cosine", threshold = 0.5, scale_exprs = FALSE,
   suppress_plot = TRUE)
 }
 \arguments{

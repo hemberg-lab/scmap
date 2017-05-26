@@ -254,7 +254,7 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         )
         
         class_assigned <- tmp[,1]
-        class_assigned[apply(tmp, 1, function(x) (length(unique(x)) != 1))] <- "unassigned"
+        class_assigned[apply(tmp, 1, function(x) (length(unique(x)) > 2))] <- "unassigned"
         
         maxs <- cbind(
             maxs1,
