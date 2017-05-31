@@ -11,6 +11,6 @@ setGeneric("setFeatures", function(object, features = NULL) {
 
 #' @export
 setGeneric("mapData", function(object_map = NULL, object_ref = NULL, class_col = "cell_type1", 
-    class_ref = NULL, method = "scmap", similarity = "cosine", threshold = 0.5, scale_exprs = FALSE, suppress_plot = TRUE) {
+    class_ref = NULL, method = "scmap", similarity = "cosine", threshold = 0.5, ml_threshold = 0.5, scale_exprs = FALSE, suppress_plot = TRUE) {
     standardGeneric("mapData")
 })

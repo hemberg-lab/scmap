@@ -90,8 +90,8 @@ support_vector_machines <- function(train, study, kern = "linear") {
     train <- t(train)
     labs <- factor(rownames(train))
     rownames(train) <- NULL
-    model <- tryCatch(e1071::svm(train, labs, kernel = kern), error = function(cond) return(NA))
-    pred <- stats::predict(model, t(study))
+    model <- tryCatch(e1071::svm(train, labs, kernel = kern, probability = TRUE), error = function(cond) return(NA))
+    pred <- stats::predict(model, t(study), probability=TRUE)
     return(pred = pred)
 }
 
@@ -105,8 +105,8 @@ random_forest <- function(train, study, ntree = 50) {
     study <- as.data.frame(study)
     rownames(train) <- NULL
     rownames(study) <- NULL
-    train_rf <- randomForest::randomForest(x = train, y = y, ntree = ntree)
-    Prediction <- stats::predict(train_rf, study)
+    train_rf <- randomForest::randomForest(x = train, y = y, ntree = ntree, keep.forest = TRUE)
+    Prediction <- stats::predict(train_rf, study, type = "prob")
     return(Prediction)
 }
 

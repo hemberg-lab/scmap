@@ -144,6 +144,7 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' @param class_ref reference cell buckets
 #' @param similarity similarity measure
 #' @param threshold threshold on similarity
+#' @param ml_threshold threshold on probability for SVM
 #' @param scale_exprs scale expression or not?
 #' @param suppress_plot defines whether to suppress an output plot
 #' 
@@ -159,7 +160,7 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' @importFrom nnet which.is.max
 #' @importFrom stats cor
 #' @export
-mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method, similarity, threshold, scale_exprs, suppress_plot) {
+mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method, similarity, threshold, ml_threshold, scale_exprs, suppress_plot) {
     if (is.null(object_map)) {
         warning(paste0("Please define a scater object to map using the `object_map` parameter!"))
         return(object_map)
@@ -302,9 +303,15 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         class_ref <- class_ref[order(rownames(class_ref)), ]
         
         res <- support_vector_machines(class_ref, dat)
+        probs <- attr(res, "probabilities")
+        max_inds <- unlist(apply(probs, 1, nnet::which.is.max))
+        maxs <- unlist(apply(probs, 1, max))
+        
+        labs <- rep("unassigned", length(max_inds))
+        labs[maxs > ml_threshold] <- colnames(probs)[max_inds][maxs > ml_threshold]
 
         p_data <- object_map@phenoData@data
-        p_data$scmap_labs <- as.character(res)
+        p_data$scmap_labs <- labs
         pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     }
     
@@ -332,9 +339,14 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         class_ref <- class_ref[order(rownames(class_ref)), ]
         
         res <- random_forest(class_ref, dat)
+        max_inds <- unlist(apply(res, 1, nnet::which.is.max))
+        maxs <- unlist(apply(res, 1, max))
+        
+        labs <- rep("unassigned", length(max_inds))
+        labs[maxs > ml_threshold] <- colnames(res)[max_inds][maxs > ml_threshold]
         
         p_data <- object_map@phenoData@data
-        p_data$scmap_labs <- as.character(res)
+        p_data$scmap_labs <- labs
         pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     }
     
@@ -346,7 +358,7 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
 #' @importClassesFrom scater SCESet
 #' @export
 setMethod("mapData", signature(object_map = "SCESet"), function(object_map, object_ref, 
-    class_col, class_ref, method, similarity, threshold, scale_exprs, suppress_plot) {
-    mapData.SCESet(object_map, object_ref, class_col, class_ref, method, similarity, threshold, scale_exprs, suppress_plot)
+    class_col, class_ref, method, similarity, threshold, ml_threshold, scale_exprs, suppress_plot) {
+    mapData.SCESet(object_map, object_ref, class_col, class_ref, method, similarity, threshold, ml_threshold, scale_exprs, suppress_plot)
 })
 

@@ -9,12 +9,12 @@
 \title{scmap main function}
 \usage{
 mapData.SCESet(object_map, object_ref, class_col, class_ref, method, similarity,
-  threshold, scale_exprs, suppress_plot)
+  threshold, ml_threshold, scale_exprs, suppress_plot)
 
 \S4method{mapData}{SCESet}(object_map = NULL, object_ref = NULL,
   class_col = "cell_type1", class_ref = NULL, method = "scmap",
-  similarity = "cosine", threshold = 0.5, scale_exprs = FALSE,
-  suppress_plot = TRUE)
+  similarity = "cosine", threshold = 0.5, ml_threshold = 0.5,
+  scale_exprs = FALSE, suppress_plot = TRUE)
 }
 \arguments{
 \item{object_map}{SCESet to map}
@@ -28,6 +28,8 @@ mapData.SCESet(object_map, object_ref, class_col, class_ref, method, similarity,
 \item{similarity}{similarity measure}
 
 \item{threshold}{threshold on similarity}
+
+\item{ml_threshold}{threshold on probability for SVM}
 
 \item{scale_exprs}{scale expression or not?}
 
