@@ -12,7 +12,7 @@ getFeatures.SCESet(object, n_features, pct_dropout_min, pct_dropout_max,
   suppress_plot)
 
 \S4method{getFeatures}{SCESet}(object, n_features = 100,
-  pct_dropout_min = 20, pct_dropout_max = 80, suppress_plot = TRUE)
+  pct_dropout_min = 0, pct_dropout_max = 100, suppress_plot = TRUE)
 }
 \arguments{
 \item{object}{an object of \code{\link[scater]{SCESet}} class}

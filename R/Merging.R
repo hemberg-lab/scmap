@@ -1,4 +1,5 @@
 #' @importFrom scater newSCESet is_exprs<- calculateQCMetrics
+#' @export
 mergeData <- function(object_reference, object_to_map) {
     if (class(object_reference) != "SCESet" | class(object_to_map) != "SCESet") {
         warning("Your arguments are not of `SCESet` class!")
