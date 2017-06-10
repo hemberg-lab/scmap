@@ -182,6 +182,9 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         return(object_map)
     }
     
+    object_ref <- object_ref[!duplicated(object_ref@featureData@data$feature_symbol), ]
+    object_map <- object_map[!duplicated(object_map@featureData@data$feature_symbol), ]
+    
     if (method == "scmap") {
         gene <- cell_class <- exprs <- NULL
         
@@ -196,7 +199,6 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
             rownames(class_ref) <- object_ref@featureData@data$feature_symbol
             f_data <- object_ref@featureData@data
             class_ref <- class_ref[f_data$scmap_features, ]
-            class_ref <- class_ref[!duplicated(rownames(class_ref)), ]
             colnames(class_ref) <- classes
             class_ref <- reshape2::melt(class_ref)
             colnames(class_ref) <- c("gene", "cell_class", "exprs")
@@ -208,7 +210,6 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         
         dat <- get_exprs(object_map, "exprs")
         rownames(dat) <- object_map@featureData@data$feature_symbol
-        dat <- dat[!duplicated(rownames(dat)), ]
         dat <- dat[rownames(dat) %in% rownames(class_ref), ]
         dat <- dat[order(rownames(dat)), ]
         
@@ -290,12 +291,10 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         rownames(class_ref) <- object_ref@featureData@data$feature_symbol
         f_data <- object_ref@featureData@data
         class_ref <- class_ref[f_data$scmap_features, ]
-        class_ref <- class_ref[!duplicated(rownames(class_ref)), ]
         colnames(class_ref) <- classes
         
         dat <- get_exprs(object_map, "exprs")
         rownames(dat) <- object_map@featureData@data$feature_symbol
-        dat <- dat[!duplicated(rownames(dat)), ]
         dat <- dat[rownames(dat) %in% rownames(class_ref), ]
         dat <- dat[order(rownames(dat)), ]
         
@@ -326,12 +325,10 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         rownames(class_ref) <- object_ref@featureData@data$feature_symbol
         f_data <- object_ref@featureData@data
         class_ref <- class_ref[f_data$scmap_features, ]
-        class_ref <- class_ref[!duplicated(rownames(class_ref)), ]
         colnames(class_ref) <- classes
         
         dat <- get_exprs(object_map, "exprs")
         rownames(dat) <- object_map@featureData@data$feature_symbol
-        dat <- dat[!duplicated(rownames(dat)), ]
         dat <- dat[rownames(dat) %in% rownames(class_ref), ]
         dat <- dat[order(rownames(dat)), ]
         
