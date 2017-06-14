@@ -142,25 +142,21 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' @param object_ref reference SCESet set
 #' @param class_col column name in the pData slot of the reference SCESet containing the cell classification information
 #' @param class_ref reference cell buckets
-#' @param similarity similarity measure
-#' @param threshold threshold on similarity
-#' @param ml_threshold threshold on probability for SVM
-#' @param scale_exprs scale expression or not?
-#' @param suppress_plot defines whether to suppress an output plot
+#' @param method which method to use
+#' @param threshold threshold on similarity (or probability for SVM and RF)
 #' 
-#' @name mapData
+#' @name projectData
 #' 
 #' @importFrom dplyr group_by summarise %>%
 #' @importFrom reshape2 melt dcast
 #' @importFrom scater pData<- get_exprs
-#' @importFrom proxy dist
+#' @importFrom proxy simil
 #' @importFrom graphics abline hist plot points
 #' @importFrom stats median
 #' @importFrom utils head
-#' @importFrom nnet which.is.max
 #' @importFrom stats cor
 #' @export
-mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method, similarity, threshold, ml_threshold, scale_exprs, suppress_plot) {
+projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, method, threshold) {
     if (is.null(object_map)) {
         warning(paste0("Please define a scater object to map using the `object_map` parameter!"))
         return(object_map)
@@ -182,9 +178,6 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         return(object_map)
     }
     
-    object_ref <- object_ref[!duplicated(object_ref@featureData@data$feature_symbol), ]
-    object_map <- object_map[!duplicated(object_map@featureData@data$feature_symbol), ]
-    
     if (method == "scmap") {
         gene <- cell_class <- exprs <- NULL
         
@@ -195,10 +188,8 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
                 warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
                 return(object_map)
             }
-            class_ref <- get_exprs(object_ref, "exprs")
-            rownames(class_ref) <- object_ref@featureData@data$feature_symbol
-            f_data <- object_ref@featureData@data
-            class_ref <- class_ref[f_data$scmap_features, ]
+            class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
+            rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
             colnames(class_ref) <- classes
             class_ref <- reshape2::melt(class_ref)
             colnames(class_ref) <- c("gene", "cell_class", "exprs")
@@ -222,32 +213,21 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
             return(object_map)
         }
         
-        if(scale_exprs) {
-            dat <- scale(dat, center = TRUE, scale = TRUE)
-            class_ref <- scale(class_ref, center = TRUE, scale = TRUE)
-        }
-        
         original_classes <- colnames(class_ref)
         
-        # if (similarity == "cosine") {
         tmp <- t(class_ref)
         res <- proxy::simil(tmp, t(dat), method = "cosine")
         res <- matrix(res, ncol = nrow(tmp), byrow = T)
-        max_inds1 <- unlist(apply(res, 1, nnet::which.is.max))
+        max_inds1 <- max.col(res)
         maxs1 <- unlist(apply(res, 1, max))
-        # }
         
-        # if (similarity == "pearson") {
         res <- cor(class_ref, dat, method = "pearson")
-        max_inds2 <- unlist(apply(res, 2, nnet::which.is.max))
+        max_inds2 <- max.col(t(res))
         maxs2 <- unlist(apply(res, 2, max))
-        # }
         
-        # if (similarity == "spearman") {
         res <- cor(class_ref, dat, method = "spearman")
-        max_inds3 <- unlist(apply(res, 2, nnet::which.is.max))
+        max_inds3 <- max.col(t(res))
         maxs3 <- unlist(apply(res, 2, max))
-        # }
         
         tmp <- cbind(
             original_classes[max_inds1],
@@ -266,12 +246,6 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         
         maxs <- apply(maxs, 1, max)
         
-        if (!suppress_plot) {
-            hist(maxs, xlim = c(-1, 1), freq = FALSE, xlab = "Normalised distance", ylab = "Density", 
-                 main = "Distribution of normalised distances")
-        }
-        
-        # class_assigned <- original_classes[max_inds]
         class_assigned[maxs < threshold] <- "unassigned"
         class_assigned[is.na(class_assigned)] <- "unassigned"
         p_data <- object_map@phenoData@data
@@ -287,10 +261,8 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
             warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
             return(object_map)
         }
-        class_ref <- get_exprs(object_ref, "exprs")
-        rownames(class_ref) <- object_ref@featureData@data$feature_symbol
-        f_data <- object_ref@featureData@data
-        class_ref <- class_ref[f_data$scmap_features, ]
+        class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
+        rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
         colnames(class_ref) <- classes
         
         dat <- get_exprs(object_map, "exprs")
@@ -303,29 +275,27 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         
         res <- support_vector_machines(class_ref, dat)
         probs <- attr(res, "probabilities")
-        max_inds <- unlist(apply(probs, 1, nnet::which.is.max))
+        max_inds <- max.col(probs)
         maxs <- unlist(apply(probs, 1, max))
         
         labs <- rep("unassigned", length(max_inds))
-        labs[maxs > ml_threshold] <- colnames(probs)[max_inds][maxs > ml_threshold]
+        labs[maxs > threshold] <- colnames(probs)[max_inds][maxs > threshold]
 
         p_data <- object_map@phenoData@data
         p_data$scmap_labs <- labs
+        p_data$scmap_siml <- maxs
         pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     }
     
     if (method == "rf") {
         
-        classes <- object_ref@phenoData@data[[class_col]]
-        if (is.null(classes)) {
+        if (is.null(object_ref@phenoData@data[[class_col]])) {
             warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
             return(object_map)
         }
-        class_ref <- get_exprs(object_ref, "exprs")
-        rownames(class_ref) <- object_ref@featureData@data$feature_symbol
-        f_data <- object_ref@featureData@data
-        class_ref <- class_ref[f_data$scmap_features, ]
-        colnames(class_ref) <- classes
+        class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
+        rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
+        colnames(class_ref) <- object_ref@phenoData@data[[class_col]]
         
         dat <- get_exprs(object_map, "exprs")
         rownames(dat) <- object_map@featureData@data$feature_symbol
@@ -336,26 +306,27 @@ mapData.SCESet <- function(object_map, object_ref, class_col, class_ref, method,
         class_ref <- class_ref[order(rownames(class_ref)), ]
         
         res <- random_forest(class_ref, dat)
-        max_inds <- unlist(apply(res, 1, nnet::which.is.max))
+        max_inds <- max.col(res)
         maxs <- unlist(apply(res, 1, max))
         
         labs <- rep("unassigned", length(max_inds))
-        labs[maxs > ml_threshold] <- colnames(res)[max_inds][maxs > ml_threshold]
+        labs[maxs > threshold] <- colnames(res)[max_inds][maxs > threshold]
         
         p_data <- object_map@phenoData@data
         p_data$scmap_labs <- labs
+        p_data$scmap_siml <- maxs
         pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     }
     
     return(object_map)
 }
 
-#' @rdname mapData
-#' @aliases mapData
+#' @rdname projectData
+#' @aliases projectData
 #' @importClassesFrom scater SCESet
 #' @export
-setMethod("mapData", signature(object_map = "SCESet"), function(object_map, object_ref, 
-    class_col, class_ref, method, similarity, threshold, ml_threshold, scale_exprs, suppress_plot) {
-    mapData.SCESet(object_map, object_ref, class_col, class_ref, method, similarity, threshold, ml_threshold, scale_exprs, suppress_plot)
+setMethod("projectData", signature(object_map = "SCESet"), function(object_map, object_ref, 
+    class_col, class_ref, method, threshold) {
+    projectData.SCESet(object_map, object_ref, class_col, class_ref, method, threshold)
 })
 
