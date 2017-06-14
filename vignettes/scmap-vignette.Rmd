@@ -29,6 +29,10 @@ biase <- readRDS("~/data/biase.rds")
 goolam <- readRDS("~/data/goolam.rds")
 fan <- readRDS("~/data/fan.rds")
 
+kolodziejczyk <- readRDS("~/data/kolodziejczyk.rds")
+
+treutlein <- readRDS("~/data/treutlein.rds")
+
 klein <- readRDS("~/data/klein.rds")
 
 zeisel <- readRDS("~/data/zeisel.rds")
@@ -47,11 +51,11 @@ xin <- xin[,pData(xin)$cell_type1 != "gamma.contaminated"]
 # uppercase mouse genes
 baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feature_symbol)
 
-scmap_ref <- segerstolpe
-scmap_map <- muraro
+scmap_ref <- shekhar
+scmap_map <- macosko
 
 # select features
-scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE, n_features = 100)
+scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE, n_features = 200)
 # scmap_ref@featureData@data$scmap_features <- TRUE
 
 # find and select only common features
@@ -59,13 +63,11 @@ scmap_map <- setFeatures(scmap_map, fData(scmap_ref)$feature_symbol[fData(scmap_
 scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
 
 # main scmap function
-scmap_map <- mapData(
+scmap_map <- projectData(
     scmap_map,
     scmap_ref,
+    # threshold = 0.5,
     method = "scmap"
-    # similarity = "cosine",
-    # threshold = 0.5
-    # suppress_plot = FALSE
 )
 
 # quantify the mapping
@@ -92,11 +94,9 @@ scmap_map <- setFeatures(scmap_map, fData(scmap_ref)$feature_symbol[fData(scmap_
 scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
 
 # main scmap function
-scmap_map <- mapData(
+scmap_map <- projectData(
     scmap_map,
     scmap_ref,
-    # class_col = "cell_type2",
-    threshold = 0.7,
     suppress_plot = FALSE
 )
 
