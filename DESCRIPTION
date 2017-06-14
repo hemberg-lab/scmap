@@ -1,11 +1,16 @@
 Package: scmap
 Type: Package
-Title: What the Package Does (Title Case)
+Title: A tool for unsupervised projection of single cell RNA-seq data
 Version: 0.99
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Vladimir Kiselev
+Maintainer: Vladimir Kiselev <vladimir.yu.kiselev@gmail.com>
+Authors@R: c(person("Vladimir", "Kiselev",
+             email = "vladimir.yu.kiselev@gmail.com",
+             role=c("cre", "aut")),
+             person("Martin", "Hemberg",
+             role=c("aut")))
+Description: Projecting cells from a scRNA-seq experiment on to the cell-types 
+    identified in a different experiment.
 License: GPL-3
 Imports:
     scater,
@@ -23,3 +28,9 @@ RoxygenNote: 6.0.1
 Suggests: knitr,
     rmarkdown
 VignetteBuilder: knitr
+biocViews: SingleCell, Software, Classification,
+            SupportVectorMachine, RNASeq, Visualization, Transcriptomics, 
+            DataRepresentation, Transcription
+NeedsCompilation: no
+URL: https://github.com/hemberg-lab/scmap
+BugReports: https://support.bioconductor.org/t/scmap/
