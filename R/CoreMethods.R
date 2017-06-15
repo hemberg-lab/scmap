@@ -210,25 +210,44 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
         max_inds3 <- max.col(t(res))
         maxs3 <- unlist(apply(res, 2, max))
         
-        tmp <- cbind(
+        cons <- cbind(
             colnames(class_ref)[max_inds1],
             colnames(class_ref)[max_inds2],
             colnames(class_ref)[max_inds3]
         )
         
-        maxs <- cbind(
+        maximums <- cbind(
             maxs1,
             maxs2,
             maxs3
         )
         
-        maxs <- apply(maxs, 1, max)
-        
         # create labels
-        labs <- tmp[,1]
-        labs[apply(tmp, 1, function(x) (length(unique(x)) > 2))] <- "unassigned"
-        labs[maxs < threshold] <- "unassigned"
-        labs[is.na(labs)] <- "unassigned"
+        maxs <- rep(NA, nrow(cons))
+        labs <- rep("unassigned", nrow(cons))
+        unique_labs <- unlist(apply(cons, 1, function(x) {length(unique(x))}))
+        
+        ## all similarities agree
+        labs[unique_labs == 1] <- cons[unique_labs == 1, 1]
+        maxs_tmp <- unlist(apply(maximums[unique_labs == 1, ], 1, max))
+        maxs[unique_labs == 1] <- maxs_tmp
+        
+        ## only two similarities agree
+        tmp <- cons[unique_labs == 2, ]
+        inds <- unlist(apply(tmp, 1, function(x) {which(duplicated(x))}))
+        labs[unique_labs == 2] <- tmp[cbind(seq_along(inds), inds)]
+        
+        ## calculate maximum similarity in case of two agreeing similarities
+        inds <- t(apply(apply(tmp, 2, `==`, labs[unique_labs == 2]), 1, which))
+        maxs_tmp <- cbind(
+            maximums[unique_labs == 2, ][cbind(seq_along(inds[,1]), inds[,1])],
+            maximums[unique_labs == 2, ][cbind(seq_along(inds[,1]), inds[,2])]
+        )
+        maxs_tmp <- apply(maxs_tmp, 1, max)
+        maxs[unique_labs == 2] <- maxs_tmp
+        
+        ## check the similarity threshold
+        labs[!is.na(maxs) & maxs < threshold] <- "unassigned"
     }
     
     if (method == "svm") {
