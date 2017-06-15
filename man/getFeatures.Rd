@@ -11,7 +11,7 @@
 getFeatures.SCESet(object, n_features, pct_dropout_min, pct_dropout_max,
   suppress_plot)
 
-\S4method{getFeatures}{SCESet}(object, n_features = 100,
+\S4method{getFeatures}{SCESet}(object, n_features = 500,
   pct_dropout_min = 0, pct_dropout_max = 100, suppress_plot = TRUE)
 }
 \arguments{

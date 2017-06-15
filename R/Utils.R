@@ -110,6 +110,42 @@ random_forest <- function(train, study, ntree = 50) {
     return(Prediction)
 }
 
+overlapData <- function(class_ref, dat) {
+    dat <- dat[rownames(dat) %in% rownames(class_ref), ]
+    dat <- dat[order(rownames(dat)), ]
+    
+    class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
+    class_ref <- class_ref[order(rownames(class_ref)), ]
+    class_ref <- class_ref[, colSums(class_ref) > 0]
+    
+    return(list(class_ref = class_ref, dat = dat))
+}
+
+#' @importFrom scater get_exprs
+#' @importFrom dplyr group_by summarise %>%
+#' @importFrom reshape2 melt dcast
+#' @importFrom stats median
+#' @export
+createReference <- function(object_ref, class_col = "cell_type1") {
+    gene <- cell_class <- exprs <- NULL
+    # calculate median feature expression in every cell class of object_ref
+    classes <- object_ref@phenoData@data[[class_col]]
+    if (is.null(classes)) {
+        warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
+        return(object_map)
+    }
+    class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
+    rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
+    colnames(class_ref) <- classes
+    class_ref <- reshape2::melt(class_ref)
+    colnames(class_ref) <- c("gene", "cell_class", "exprs")
+    class_ref <- class_ref %>% group_by(gene, cell_class) %>% summarise(med_exprs = median(exprs))
+    class_ref <- reshape2::dcast(class_ref, gene ~ cell_class, value.var = "med_exprs")
+    rownames(class_ref) <- class_ref$gene
+    class_ref <- class_ref[, 2:ncol(class_ref)]
+    return(class_ref)
+}
+
 #' @importFrom scater newSCESet is_exprs<- calculateQCMetrics
 mergeData <- function(object_reference, object_to_map) {
     if (class(object_reference) != "SCESet" | class(object_to_map) != "SCESet") {

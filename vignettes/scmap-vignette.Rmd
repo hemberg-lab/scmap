@@ -51,11 +51,11 @@ xin <- xin[,pData(xin)$cell_type1 != "gamma.contaminated"]
 # uppercase mouse genes
 baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feature_symbol)
 
-scmap_ref <- shekhar
-scmap_map <- macosko
+scmap_ref <- deng
+scmap_map <- deng
 
 # select features
-scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE, n_features = 200)
+scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE)
 # scmap_ref@featureData@data$scmap_features <- TRUE
 
 # find and select only common features

@@ -147,12 +147,9 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' 
 #' @name projectData
 #' 
-#' @importFrom dplyr group_by summarise %>%
-#' @importFrom reshape2 melt dcast
 #' @importFrom scater pData<- get_exprs
 #' @importFrom proxy simil
 #' @importFrom graphics abline hist plot points
-#' @importFrom stats median
 #' @importFrom utils head
 #' @importFrom stats cor
 #' @export
@@ -178,43 +175,27 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
         return(object_map)
     }
     
+    # get expression values of the projection dataset
+    dat <- get_exprs(object_map, "exprs")
+    rownames(dat) <- object_map@featureData@data$feature_symbol
+    
     if (method == "scmap") {
-        gene <- cell_class <- exprs <- NULL
-        
+        # create the reference
         if (is.null(class_ref)) {
-            # calculate median feature expression in every cell class of object_ref
-            classes <- object_ref@phenoData@data[[class_col]]
-            if (is.null(classes)) {
-                warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
-                return(object_map)
-            }
-            class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
-            rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
-            colnames(class_ref) <- classes
-            class_ref <- reshape2::melt(class_ref)
-            colnames(class_ref) <- c("gene", "cell_class", "exprs")
-            class_ref <- class_ref %>% group_by(gene, cell_class) %>% summarise(med_exprs = median(exprs))
-            class_ref <- reshape2::dcast(class_ref, gene ~ cell_class, value.var = "med_exprs")
-            rownames(class_ref) <- class_ref$gene
-            class_ref <- class_ref[, 2:ncol(class_ref)]
+            class_ref <- createReference(object_ref, class_col)
         }
         
-        dat <- get_exprs(object_map, "exprs")
-        rownames(dat) <- object_map@featureData@data$feature_symbol
-        dat <- dat[rownames(dat) %in% rownames(class_ref), ]
-        dat <- dat[order(rownames(dat)), ]
-        
-        class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
-        class_ref <- class_ref[order(rownames(class_ref)), ]
-        class_ref <- class_ref[, colSums(class_ref) > 0]
+        # find feature overlap between the datasets
+        ovrlp <- overlapData(class_ref, dat)
+        class_ref <- ovrlp$class_ref
+        dat <- ovrlp$dat
         
         if (ncol(class_ref) == 0) {
             warning(paste0("Median expression in the selected features is 0 in every cell, please redefine your features!"))
             return(object_map)
         }
         
-        original_classes <- colnames(class_ref)
-        
+        # run scmap
         tmp <- t(class_ref)
         res <- proxy::simil(tmp, t(dat), method = "cosine")
         res <- matrix(res, ncol = nrow(tmp), byrow = T)
@@ -230,13 +211,10 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
         maxs3 <- unlist(apply(res, 2, max))
         
         tmp <- cbind(
-            original_classes[max_inds1],
-            original_classes[max_inds2],
-            original_classes[max_inds3]
+            colnames(class_ref)[max_inds1],
+            colnames(class_ref)[max_inds2],
+            colnames(class_ref)[max_inds3]
         )
-        
-        class_assigned <- tmp[,1]
-        class_assigned[apply(tmp, 1, function(x) (length(unique(x)) > 2))] <- "unassigned"
         
         maxs <- cbind(
             maxs1,
@@ -246,77 +224,60 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
         
         maxs <- apply(maxs, 1, max)
         
-        class_assigned[maxs < threshold] <- "unassigned"
-        class_assigned[is.na(class_assigned)] <- "unassigned"
-        p_data <- object_map@phenoData@data
-        p_data$scmap_labs <- class_assigned
-        p_data$scmap_siml <- maxs
-        pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
+        # create labels
+        labs <- tmp[,1]
+        labs[apply(tmp, 1, function(x) (length(unique(x)) > 2))] <- "unassigned"
+        labs[maxs < threshold] <- "unassigned"
+        labs[is.na(labs)] <- "unassigned"
     }
     
     if (method == "svm") {
-        
-        classes <- object_ref@phenoData@data[[class_col]]
-        if (is.null(classes)) {
-            warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
-            return(object_map)
-        }
+        # create the reference
         class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
         rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
-        colnames(class_ref) <- classes
+        colnames(class_ref) <- object_ref@phenoData@data[[class_col]]
         
-        dat <- get_exprs(object_map, "exprs")
-        rownames(dat) <- object_map@featureData@data$feature_symbol
-        dat <- dat[rownames(dat) %in% rownames(class_ref), ]
-        dat <- dat[order(rownames(dat)), ]
+        # find feature overlap between the datasets
+        ovrlp <- overlapData(class_ref, dat)
+        class_ref <- ovrlp$class_ref
+        dat <- ovrlp$dat
         
-        class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
-        class_ref <- class_ref[order(rownames(class_ref)), ]
-        
+        # run support vector machine
         res <- support_vector_machines(class_ref, dat)
         probs <- attr(res, "probabilities")
         max_inds <- max.col(probs)
         maxs <- unlist(apply(probs, 1, max))
         
+        # create labels
         labs <- rep("unassigned", length(max_inds))
         labs[maxs > threshold] <- colnames(probs)[max_inds][maxs > threshold]
-
-        p_data <- object_map@phenoData@data
-        p_data$scmap_labs <- labs
-        p_data$scmap_siml <- maxs
-        pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     }
     
     if (method == "rf") {
-        
-        if (is.null(object_ref@phenoData@data[[class_col]])) {
-            warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
-            return(object_map)
-        }
+        # create the reference
         class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
         rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
         colnames(class_ref) <- object_ref@phenoData@data[[class_col]]
         
-        dat <- get_exprs(object_map, "exprs")
-        rownames(dat) <- object_map@featureData@data$feature_symbol
-        dat <- dat[rownames(dat) %in% rownames(class_ref), ]
-        dat <- dat[order(rownames(dat)), ]
+        # find feature overlap between the datasets
+        ovrlp <- overlapData(class_ref, dat)
+        class_ref <- ovrlp$class_ref
+        dat <- ovrlp$dat
         
-        class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
-        class_ref <- class_ref[order(rownames(class_ref)), ]
-        
+        # run random forest
         res <- random_forest(class_ref, dat)
         max_inds <- max.col(res)
         maxs <- unlist(apply(res, 1, max))
         
+        # create labels
         labs <- rep("unassigned", length(max_inds))
         labs[maxs > threshold] <- colnames(res)[max_inds][maxs > threshold]
-        
-        p_data <- object_map@phenoData@data
-        p_data$scmap_labs <- labs
-        p_data$scmap_siml <- maxs
-        pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     }
+    
+    p_data <- object_map@phenoData@data
+    p_data$scmap_labs <- labs
+    p_data$scmap_siml <- maxs
+    pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
     
     return(object_map)
 }
