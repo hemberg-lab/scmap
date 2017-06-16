@@ -6,43 +6,37 @@
 \alias{getFeatures.SCESet}
 \alias{getFeatures,SCESet-method}
 \alias{getFeatures}
-\title{Select the most important features (genes/transcripts) for mapping}
+\title{Select the most informative features (genes/transcripts) for projection}
 \usage{
-getFeatures.SCESet(object, n_features, pct_dropout_min, pct_dropout_max,
-  suppress_plot)
+getFeatures.SCESet(object, n_features, suppress_plot)
 
 \S4method{getFeatures}{SCESet}(object, n_features = 500,
-  pct_dropout_min = 0, pct_dropout_max = 100, suppress_plot = TRUE)
+  suppress_plot = TRUE)
 }
 \arguments{
 \item{object}{an object of \code{\link[scater]{SCESet}} class}
 
-\item{n_features}{number of the features to be selected. Note that the number
-of the output selected features can be lower than the requested 'n_features'.}
+\item{n_features}{number of the features to be selected}
 
-\item{pct_dropout_min}{lower threshold for dropout rate. Features with the
-dropout rate lower than \code{pct_dropout_min} will not be selected.}
-
-\item{pct_dropout_max}{upper threshold for dropout rate. Features with the
-dropout rate lower than \code{pct_dropout_min} will not be selected.}
-
-\item{suppress_plot}{defines whether to plot the linear model fit to the data
-together with the highlighted residuals.}
+\item{suppress_plot}{boolean parameter, which defines whether to plot 
+log(expression) versus log(dropout) distribution for all genes}
 }
 \value{
 an object of \code{\link[scater]{SCESet}} class with a new column in 
-\code{featureData} slot which is called \code{scmap_features}. It can be accessible
-either by \code{fData(object)$scmap_features} or by \code{object@featureData@data$scmap_features}
+\code{featureData} slot which is called \code{scmap_features}. It can be accessed
+by using \code{fData(object)$scmap_features}.
 }
 \description{
-The features are selected by find positive residuals from the linear model of
-dropouts versus expression dependency (both in a log scale). This method
-is similar to the one used in M3Drop package, where the right side feautres
-are selected as the differentially expressed.
+This is a modification of the M3Drop method. Instead of fitting a 
+Michaelis-Menten model to the log expression-dropout relation, we fit a 
+linear model. Namely, the linear model is build on the log(expression) versus 
+log(dropout) distribution. After fitting a linear model important features are
+ selected as the top N residuals of the linear model.
 }
 \details{
 Please note that \code{object@featureData@data$feature_symbol} column must be 
-present in the input object. This column defines feature names used during mapping
-Feature symbols in the reference dataset must correpond to the feature symbols
-in the mapping dataset, otherwise the mapping will not work!
+present in the input object and should not contain any duplicated feature names. 
+This column defines feature names used during projection. Feature symbols 
+in the reference dataset must correpond to the feature symbols
+in the projection dataset, otherwise the mapping will not work!
 }

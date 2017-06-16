@@ -1,6 +1,5 @@
 #' @export
-setGeneric("getFeatures", function(object, n_features = 500, pct_dropout_min = 0, pct_dropout_max = 100, 
-    suppress_plot = TRUE) {
+setGeneric("getFeatures", function(object, n_features = 500, suppress_plot = TRUE) {
     standardGeneric("getFeatures")
 })
 

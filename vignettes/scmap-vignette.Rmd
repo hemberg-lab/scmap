@@ -66,7 +66,6 @@ scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_
 scmap_map <- projectData(
     scmap_map,
     scmap_ref,
-    # threshold = 0.5,
     method = "scmap"
 )
 

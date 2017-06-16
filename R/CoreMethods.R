@@ -1,38 +1,33 @@
-#' Select the most important features (genes/transcripts) for mapping
+#' Select the most informative features (genes/transcripts) for projection
 #'
-#' The features are selected by find positive residuals from the linear model of
-#' dropouts versus expression dependency (both in a log scale). This method
-#' is similar to the one used in M3Drop package, where the right side feautres
-#' are selected as the differentially expressed.
+#' This is a modification of the M3Drop method. Instead of fitting a 
+#' Michaelis-Menten model to the log expression-dropout relation, we fit a 
+#' linear model. Namely, the linear model is build on the log(expression) versus 
+#' log(dropout) distribution. After fitting a linear model important features are
+#'  selected as the top N residuals of the linear model.
 #' 
 #' Please note that \code{object@featureData@data$feature_symbol} column must be 
-#' present in the input object. This column defines feature names used during mapping
-#' Feature symbols in the reference dataset must correpond to the feature symbols
-#' in the mapping dataset, otherwise the mapping will not work!
+#' present in the input object and should not contain any duplicated feature names. 
+#' This column defines feature names used during projection. Feature symbols 
+#' in the reference dataset must correpond to the feature symbols
+#' in the projection dataset, otherwise the mapping will not work!
 #'
 #' @param object an object of \code{\link[scater]{SCESet}} class
-#' @param n_features number of the features to be selected. Note that the number
-#' of the output selected features can be lower than the requested 'n_features'.
-#' @param pct_dropout_min lower threshold for dropout rate. Features with the
-#' dropout rate lower than \code{pct_dropout_min} will not be selected.
-#' @param pct_dropout_max upper threshold for dropout rate. Features with the
-#' dropout rate lower than \code{pct_dropout_min} will not be selected.
-#' @param suppress_plot defines whether to plot the linear model fit to the data
-#' together with the highlighted residuals.
+#' @param n_features number of the features to be selected
+#' @param suppress_plot boolean parameter, which defines whether to plot 
+#' log(expression) versus log(dropout) distribution for all genes
 #'
 #' @return an object of \code{\link[scater]{SCESet}} class with a new column in 
-#' \code{featureData} slot which is called \code{scmap_features}. It can be accessible
-#' either by \code{fData(object)$scmap_features} or by \code{object@featureData@data$scmap_features}
+#' \code{featureData} slot which is called \code{scmap_features}. It can be accessed
+#' by using \code{fData(object)$scmap_features}.
 #'
 #' @name getFeatures
 #'
 #' @importFrom scater fData<-
 #' @importFrom methods new
-#' @importFrom stats lm
 #'
 #' @export
-getFeatures.SCESet <- function(object, n_features, pct_dropout_min, pct_dropout_max, 
-    suppress_plot) {
+getFeatures.SCESet <- function(object, n_features, suppress_plot) {
     if (is.null(object@featureData@data$feature_symbol)) {
         message("There is no feature_symbol column in the featureData slot! 
                 Please create one and then run this function again. Please note
@@ -43,25 +38,13 @@ getFeatures.SCESet <- function(object, n_features, pct_dropout_min, pct_dropout_
     }
     
     f_data <- object@featureData@data
-    
-    # do not consider ERCC spike-ins and genes with 0 dropout rate
-    dropouts_filter <- which(f_data$pct_dropout != 0 & !grepl("ERCC-", object@featureData@data$feature_symbol))
-    dropouts <- log2(f_data$pct_dropout[dropouts_filter])
-    expression <- f_data$mean_exprs[dropouts_filter]
-    
-    fit <- lm(dropouts ~ expression)
-    gene_inds <- as.numeric(names(head(sort(fit$residuals[fit$residuals > 0 & f_data$pct_dropout[dropouts_filter] > 
-        pct_dropout_min & f_data$pct_dropout[dropouts_filter] < pct_dropout_max], decreasing = T), 
-        n_features)))
-    
-    f_data$scmap_features <- FALSE
-    f_data$scmap_features[dropouts_filter[gene_inds]] <- TRUE
+    tmp <- linearModel(f_data, n_features)
+    f_data$scmap_features <- tmp$scmap_features
     fData(object) <- new("AnnotatedDataFrame", data = f_data)
     
     if (!suppress_plot) {
-        plot(expression, dropouts, xlab = "log2(Expression)", ylab = "log2(% of dropouts)", pch = 16, cex = 0.2)
-        points(expression[gene_inds], dropouts[gene_inds], col = "red", pch = 16, cex = 0.7)
-        abline(fit, col = "red")
+        p <- ggplot_features(tmp$for_plotting, tmp$fit)
+        print(p)
     }
     
     return(object)
@@ -71,9 +54,8 @@ getFeatures.SCESet <- function(object, n_features, pct_dropout_min, pct_dropout_
 #' @aliases getFeatures
 #' @importClassesFrom scater SCESet
 #' @export
-setMethod("getFeatures", signature(object = "SCESet"), function(object, n_features, pct_dropout_min, 
-    pct_dropout_max, suppress_plot) {
-    getFeatures.SCESet(object, n_features, pct_dropout_min, pct_dropout_max, suppress_plot)
+setMethod("getFeatures", signature(object = "SCESet"), function(object, n_features, suppress_plot) {
+    getFeatures.SCESet(object, n_features, suppress_plot)
 })
 
 #' Set the most important features (genes/transcripts) for mapping
@@ -163,6 +145,11 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
             warning(paste0("Please define either a reference scater object using the `object_ref` parameter or scmap reference buckets using the `class_ref`!"))
             return(object_map)
         }
+    }
+    
+    if (is.null(object_ref@featureData@data$scmap_features)) {
+        warning("There are no features selected in the Reference dataset! Please run `getFeatures()` first!")
+        return(object_map)
     }
     
     if (length(which(object_ref@featureData@data$scmap_features)) < 2) {

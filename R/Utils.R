@@ -110,6 +110,57 @@ random_forest <- function(train, study, ntree = 50) {
     return(Prediction)
 }
 
+#' @importFrom stats lm
+linearModel <- function(f_data, n_features) {
+    # do not consider ERCC spike-ins and genes with 0 dropout rate
+    dropouts_filter <- which(f_data$pct_dropout != 0 & 
+                                 f_data$pct_dropout != 100 &
+                                 !grepl("ERCC-", f_data$feature_symbol))
+    dropouts <- log2(f_data$pct_dropout[dropouts_filter])
+    expression <- f_data$mean_exprs[dropouts_filter]
+    
+    fit <- lm(dropouts ~ expression)
+    gene_inds <- as.numeric(names(head(sort(fit$residuals, decreasing = T), 
+                                       n_features)))
+    
+    scmap_features <- rep(FALSE, nrow(f_data))
+    scmap_features[dropouts_filter[gene_inds]] <- TRUE
+    
+    d <- as.data.frame(cbind(expression, dropouts))
+    d$Gene <- f_data$feature_symbol[dropouts_filter]
+    d$Features <- "Other"
+    d$Features[gene_inds] <- "Selected"
+    d$Features <- factor(d$Features, levels = c("Selected", "Other"))
+    
+    return(list(scmap_features = scmap_features, for_plotting = d, fit = fit))
+}
+
+#' Plot feature distibution and highlight the most informative features.
+#' 
+#' Plots log(dropout_rate) versus log2(mean_expression) for all genes. 
+#' Selected features are highlight with the red colour.
+#'
+#' @param object an object of \code{\link[scater]{SCESet}} class
+#' @param n_features number of the features to be selected.
+plotFeatures <- function(object, n_features = 500) {
+    f_data <- object@featureData@data
+    tmp <- linearModel(f_data, n_features)
+    ggplot_features(tmp$for_plotting, tmp$fit)
+}
+
+#' @importFrom ggplot2 ggplot aes geom_point scale_colour_manual labs geom_abline theme_classic
+ggplot_features <- function(d, fit) {
+    cols <- c("#d73027", "#4575b4")
+    p <- ggplot(d, aes(x = expression, y = dropouts, colour = Features)) +
+        geom_point(aes(text = paste("Gene:", Gene)), size = 0.7) +
+        scale_colour_manual(values = cols) +
+        guides(colour = FALSE) +
+        labs(x = "log2(Expression)", y = "log2(% of dropouts)") +
+        geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1], size = 1.3) +
+        theme_classic(base_size = 12)
+    return(p)
+}
+
 overlapData <- function(class_ref, dat) {
     dat <- dat[rownames(dat) %in% rownames(class_ref), ]
     dat <- dat[order(rownames(dat)), ]

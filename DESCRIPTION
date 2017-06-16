@@ -18,6 +18,7 @@ Imports:
     reshape2,
     proxy,
     googleVis,
+    ggplot2,
     methods,
     stats,
     e1071,
