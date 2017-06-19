@@ -29,9 +29,12 @@ biase <- readRDS("~/data/biase.rds")
 goolam <- readRDS("~/data/goolam.rds")
 fan <- readRDS("~/data/fan.rds")
 
+yan <- readRDS("~/data/yan.rds")
 kolodziejczyk <- readRDS("~/data/kolodziejczyk.rds")
-
+li <- readRDS("~/data/li.rds")
 treutlein <- readRDS("~/data/treutlein.rds")
+
+tasic <- readRDS("~/data/tasic-rpkms.rds")
 
 klein <- readRDS("~/data/klein.rds")
 
@@ -40,6 +43,8 @@ usoskin <- readRDS("~/data/usoskin.rds")
 
 shekhar <- readRDS("~/data/shekhar.rds")
 macosko <- readRDS("~/data/macosko.rds")
+
+nestorowa <- readRDS("~/data/nestorowa.rds")
 
 # unify cell type annotations
 segerstolpe <- segerstolpe[,pData(segerstolpe)$cell_type1 != "not applicable"]
@@ -51,21 +56,30 @@ xin <- xin[,pData(xin)$cell_type1 != "gamma.contaminated"]
 # uppercase mouse genes
 baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feature_symbol)
 
-scmap_ref <- deng
+ref <- read.table("~/Desktop/refs/baron-human.txt", check.names = FALSE, sep = "\t")
+
+scmap_ref <- wang
 scmap_map <- deng
 
 # select features
 scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE)
 # scmap_ref@featureData@data$scmap_features <- TRUE
 
-# find and select only common features
-scmap_map <- setFeatures(scmap_map, fData(scmap_ref)$feature_symbol[fData(scmap_ref)$scmap_features])
-scmap_ref <- setFeatures(scmap_ref, fData(scmap_map)$feature_symbol[fData(scmap_map)$scmap_features])
+# create reference
+scmap_ref <- scmap_ref[fData(scmap_ref)$scmap_features, ]
+d <- createReference(scmap_ref)
+write.table(d, "~/Desktop/refs/nestorowa.txt", quote = F, sep = "\t")
 
 # main scmap function
 scmap_map <- projectData(
     scmap_map,
     scmap_ref,
+    method = "scmap"
+)
+
+scmap_map <- projectData(
+    scmap_map,
+    class_ref = ref,
     method = "scmap"
 )
 

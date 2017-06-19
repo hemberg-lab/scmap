@@ -145,21 +145,38 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
             warning(paste0("Please define either a reference scater object using the `object_ref` parameter or scmap reference buckets using the `class_ref`!"))
             return(object_map)
         }
+    } else {
+        if (is.null(object_ref@featureData@data$scmap_features)) {
+            warning("There are no features selected in the Reference dataset! Please run `getFeatures()` first!")
+            return(object_map)
+        }
+        if (!class_col %in% colnames(object_ref@phenoData@data)) {
+            warning(paste0("Please define a correct class column of the reference scater object pData slot using the `class_col` parameter!"))
+            return(object_map)
+        }
     }
-    
-    if (is.null(object_ref@featureData@data$scmap_features)) {
-        warning("There are no features selected in the Reference dataset! Please run `getFeatures()` first!")
+    if (is.null(object_ref) & (method == "svm" | method == "rf")) {
+        warning("SVM/RF do not work with the reference provided for scmap. Please provide the full reference dataset.")
         return(object_map)
     }
     
-    if (length(which(object_ref@featureData@data$scmap_features)) < 2) {
-        warning("There are no common features between the Reference and Projection datasets! Either check that both datasets are from the same organism or increase the number of selected features (>100).")
-        return(object_map)
+    # find and select only common features, then subset both datasets
+    if (is.null(class_ref)) {
+        object_map <- setFeatures(object_map, fData(object_ref)$feature_symbol[fData(object_ref)$scmap_features])
+        object_ref <- setFeatures(object_ref, fData(object_map)$feature_symbol[fData(object_map)$scmap_features])
+        object_map <- object_map[fData(object_map)$scmap_features, ]
+        object_ref <- object_ref[fData(object_ref)$scmap_features, ]
+    } else {
+        object_map <- setFeatures(object_map, rownames(class_ref))
+        class_ref <- class_ref[rownames(class_ref) %in% fData(object_map)$feature_symbol[fData(object_map)$scmap_features],]
+        object_map <- object_map[fData(object_map)$scmap_features, ]
     }
     
-    if (!class_col %in% colnames(object_ref@phenoData@data)) {
-        warning(paste0("Please define a correct class column of the reference scater object pData slot using the `class_col` parameter!"))
-        return(object_map)
+    if (is.null(object_ref)) {
+        if (nrow(class_ref) < 10) {
+            warning("There are less than ten features in common between the Reference and Projection datasets. Most probably they come from different organisms!")
+            return(object_map)
+        }
     }
     
     # get expression values of the projection dataset
@@ -172,10 +189,10 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
             class_ref <- createReference(object_ref, class_col)
         }
         
-        # find feature overlap between the datasets
-        ovrlp <- overlapData(class_ref, dat)
-        class_ref <- ovrlp$class_ref
-        dat <- ovrlp$dat
+        # prepare the datasets for projection
+        tmp <- prepareData(class_ref, dat)
+        class_ref <- tmp$class_ref
+        dat <- tmp$dat
         
         if (ncol(class_ref) == 0) {
             warning(paste0("Median expression in the selected features is 0 in every cell, please redefine your features!"))
@@ -216,37 +233,60 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
         
         ## all similarities agree
         labs[unique_labs == 1] <- cons[unique_labs == 1, 1]
-        maxs_tmp <- unlist(apply(maximums[unique_labs == 1, ], 1, max))
-        maxs[unique_labs == 1] <- maxs_tmp
+        if (length(which(unique_labs == 1)) > 1) {
+            maxs_tmp <- unlist(apply(maximums[unique_labs == 1, ], 1, max))
+            maxs[unique_labs == 1] <- maxs_tmp
+        } else {
+            if (length(which(unique_labs == 1)) != 0) {
+                maxs_tmp <- max(maximums[unique_labs == 1, ])
+                maxs[unique_labs == 1] <- maxs_tmp
+            }
+        }
         
         ## only two similarities agree
         tmp <- cons[unique_labs == 2, ]
-        inds <- unlist(apply(tmp, 1, function(x) {which(duplicated(x))}))
-        labs[unique_labs == 2] <- tmp[cbind(seq_along(inds), inds)]
-        
-        ## calculate maximum similarity in case of two agreeing similarities
-        inds <- t(apply(apply(tmp, 2, `==`, labs[unique_labs == 2]), 1, which))
-        maxs_tmp <- cbind(
-            maximums[unique_labs == 2, ][cbind(seq_along(inds[,1]), inds[,1])],
-            maximums[unique_labs == 2, ][cbind(seq_along(inds[,1]), inds[,2])]
-        )
-        maxs_tmp <- apply(maxs_tmp, 1, max)
-        maxs[unique_labs == 2] <- maxs_tmp
-        
+        ### run only of there are cases when two similarities agree
+        if (length(which(unique_labs == 2)) > 1) {
+            inds <- unlist(apply(tmp, 1, function(x) {which(duplicated(x))}))
+            labs[unique_labs == 2] <- tmp[cbind(seq_along(inds), inds)]
+            
+            ## calculate maximum similarity in case of two agreeing similarities
+            inds <- matrix(unlist(apply(apply(tmp, 2, `==`, labs[unique_labs == 2]), 1, which)), ncol = 2, byrow = TRUE)
+            maxs_tmp <- cbind(
+                maximums[unique_labs == 2, ][cbind(seq_along(inds[,1]), inds[,1])],
+                maximums[unique_labs == 2, ][cbind(seq_along(inds[,1]), inds[,2])]
+            )
+            maxs_tmp <- apply(maxs_tmp, 1, max)
+            maxs[unique_labs == 2] <- maxs_tmp
+        } else {
+            if (length(which(unique_labs == 2)) != 0) {
+                inds <- which(duplicated(tmp))
+                labs[unique_labs == 2] <- tmp[inds]
+                
+                ## calculate maximum similarity in case of two agreeing similarities
+                inds <- which(tmp == labs[unique_labs == 2])
+                maxs_tmp <- c(
+                    maximums[unique_labs == 2, ][inds[1]],
+                    maximums[unique_labs == 2, ][inds[2]]
+                )
+                maxs_tmp <- max(maxs_tmp)
+                maxs[unique_labs == 2] <- maxs_tmp
+            }
+        }
         ## check the similarity threshold
         labs[!is.na(maxs) & maxs < threshold] <- "unassigned"
     }
     
     if (method == "svm") {
         # create the reference
-        class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
-        rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
-        colnames(class_ref) <- object_ref@phenoData@data[[class_col]]
+        class_ref <- get_exprs(object_ref, "exprs")
+        rownames(class_ref) <- fData(object_ref)$feature_symbol
+        colnames(class_ref) <- pData(object_ref)[[class_col]]
         
-        # find feature overlap between the datasets
-        ovrlp <- overlapData(class_ref, dat)
-        class_ref <- ovrlp$class_ref
-        dat <- ovrlp$dat
+        # prepare the datasets for projection
+        tmp <- prepareData(class_ref, dat)
+        class_ref <- tmp$class_ref
+        dat <- tmp$dat
         
         # run support vector machine
         res <- support_vector_machines(class_ref, dat)
@@ -261,14 +301,14 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
     
     if (method == "rf") {
         # create the reference
-        class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
-        rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
-        colnames(class_ref) <- object_ref@phenoData@data[[class_col]]
+        class_ref <- get_exprs(object_ref, "exprs")
+        rownames(class_ref) <- fData(object_ref)$feature_symbol
+        colnames(class_ref) <- pData(object_ref)[[class_col]]
         
-        # find feature overlap between the datasets
-        ovrlp <- overlapData(class_ref, dat)
-        class_ref <- ovrlp$class_ref
-        dat <- ovrlp$dat
+        # prepare the datasets for projection
+        tmp <- prepareData(class_ref, dat)
+        class_ref <- tmp$class_ref
+        dat <- tmp$dat
         
         # run random forest
         res <- random_forest(class_ref, dat)

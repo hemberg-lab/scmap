@@ -33,20 +33,24 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
     colnames(res.all) <- names(table(clusters))
     rownames(res.all) <- names(table(reference))
     
-    res.all <- res.all[order(as.numeric(table(reference)), decreasing = T), order(as.numeric(table(clusters)), 
-        decreasing = T)]
+    if (ncol(res.all) > 1) {
+        res.all <- res.all[order(as.numeric(table(reference)), decreasing = T), order(as.numeric(table(clusters)), 
+            decreasing = T)]
+    }
     
     res <- reshape2::melt(res.all)
     res <- res[res$value != 0, ]
     
-    maxs <- res %>% dplyr::group_by(Var1) %>% dplyr::summarise(max = max(value))
-    
-    res <- merge(res, maxs)
-    maxs <- res[res$value == res$max, ]
-    maxs <- maxs[order(maxs$value, decreasing = T), ]
-    res <- res[res$value != res$max, ]
-    res <- rbind(maxs, res)
-    res <- res[, 1:3]
+    if (ncol(res.all) > 1) {    
+        maxs <- res %>% dplyr::group_by(Var1) %>% dplyr::summarise(max = max(value))
+        
+        res <- merge(res, maxs)
+        maxs <- res[res$value == res$max, ]
+        maxs <- maxs[order(maxs$value, decreasing = T), ]
+        res <- res[res$value != res$max, ]
+        res <- rbind(maxs, res)
+        res <- res[, 1:3]
+    }
     
     # remove cycles from the data
     res[, 1] <- paste0(res[, 1], " ")
@@ -161,11 +165,8 @@ ggplot_features <- function(d, fit) {
     return(p)
 }
 
-overlapData <- function(class_ref, dat) {
-    dat <- dat[rownames(dat) %in% rownames(class_ref), ]
+prepareData <- function(class_ref, dat) {
     dat <- dat[order(rownames(dat)), ]
-    
-    class_ref <- class_ref[rownames(class_ref) %in% rownames(dat), ]
     class_ref <- class_ref[order(rownames(class_ref)), ]
     class_ref <- class_ref[, colSums(class_ref) > 0]
     
@@ -179,18 +180,20 @@ overlapData <- function(class_ref, dat) {
 #' @export
 createReference <- function(object_ref, class_col = "cell_type1") {
     gene <- cell_class <- exprs <- NULL
-    # calculate median feature expression in every cell class of object_ref
-    classes <- object_ref@phenoData@data[[class_col]]
-    if (is.null(classes)) {
+    if (is.null(pData(object_ref)[[class_col]])) {
         warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
         return(object_map)
     }
-    class_ref <- get_exprs(object_ref[object_ref@featureData@data$scmap_features, ], "exprs")
-    rownames(class_ref) <- object_ref[object_ref@featureData@data$scmap_features, ]@featureData@data$feature_symbol
-    colnames(class_ref) <- classes
+    class_ref <- get_exprs(object_ref, "exprs")
+    rownames(class_ref) <- fData(object_ref)$feature_symbol
+    colnames(class_ref) <- pData(object_ref)[[class_col]]
+    
+    # calculate median feature expression in every cell class of object_ref
     class_ref <- reshape2::melt(class_ref)
     colnames(class_ref) <- c("gene", "cell_class", "exprs")
-    class_ref <- class_ref %>% group_by(gene, cell_class) %>% summarise(med_exprs = median(exprs))
+    class_ref <- class_ref %>% 
+        group_by(gene, cell_class) %>% 
+        summarise(med_exprs = median(exprs))
     class_ref <- reshape2::dcast(class_ref, gene ~ cell_class, value.var = "med_exprs")
     rownames(class_ref) <- class_ref$gene
     class_ref <- class_ref[, 2:ncol(class_ref)]
