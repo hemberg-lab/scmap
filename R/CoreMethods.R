@@ -135,7 +135,10 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' @importFrom utils head
 #' @importFrom stats cor
 #' @export
-projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, method, threshold) {
+projectData.SCESet <- function(map, object_ref, class_col, class_ref, method, threshold) {
+    
+    object_map <- map
+    
     if (is.null(object_map)) {
         warning(paste0("Please define a scater object to map using the `object_map` parameter!"))
         return(object_map)
@@ -232,16 +235,16 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
         unique_labs <- unlist(apply(cons, 1, function(x) {length(unique(x))}))
         
         ## all similarities agree
-        labs[unique_labs == 1] <- cons[unique_labs == 1, 1]
-        if (length(which(unique_labs == 1)) > 1) {
+        labs[unique_labs == 1] <- cons[unique_labs == 1, 1, drop = FALSE]
+        # if (length(which(unique_labs == 1)) > 1) {
             maxs_tmp <- unlist(apply(maximums[unique_labs == 1, ], 1, max))
             maxs[unique_labs == 1] <- maxs_tmp
-        } else {
-            if (length(which(unique_labs == 1)) != 0) {
-                maxs_tmp <- max(maximums[unique_labs == 1, ])
-                maxs[unique_labs == 1] <- maxs_tmp
-            }
-        }
+        # } else {
+        #     if (length(which(unique_labs == 1)) != 0) {
+        #         maxs_tmp <- max(maximums[unique_labs == 1, ])
+        #         maxs[unique_labs == 1] <- maxs_tmp
+        #     }
+        # }
         
         ## only two similarities agree
         tmp <- cons[unique_labs == 2, ]
@@ -320,20 +323,20 @@ projectData.SCESet <- function(object_map, object_ref, class_col, class_ref, met
         labs[maxs > threshold] <- colnames(res)[max_inds][maxs > threshold]
     }
     
-    p_data <- object_map@phenoData@data
+    p_data <- map@phenoData@data
     p_data$scmap_labs <- labs
     p_data$scmap_siml <- maxs
-    pData(object_map) <- new("AnnotatedDataFrame", data = p_data)
+    pData(map) <- new("AnnotatedDataFrame", data = p_data)
     
-    return(object_map)
+    return(map)
 }
 
 #' @rdname projectData
 #' @aliases projectData
 #' @importClassesFrom scater SCESet
 #' @export
-setMethod("projectData", signature(object_map = "SCESet"), function(object_map, object_ref, 
+setMethod("projectData", signature(map = "SCESet"), function(map, object_ref, 
     class_col, class_ref, method, threshold) {
-    projectData.SCESet(object_map, object_ref, class_col, class_ref, method, threshold)
+    projectData.SCESet(map, object_ref, class_col, class_ref, method, threshold)
 })
 

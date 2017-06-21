@@ -35,7 +35,7 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
     
     if (ncol(res.all) > 1) {
         res.all <- res.all[order(as.numeric(table(reference)), decreasing = T), order(as.numeric(table(clusters)), 
-            decreasing = T)]
+            decreasing = T), drop = FALSE]
     }
     
     res <- reshape2::melt(res.all)
@@ -167,8 +167,8 @@ ggplot_features <- function(d, fit) {
 
 prepareData <- function(class_ref, dat) {
     dat <- dat[order(rownames(dat)), ]
-    class_ref <- class_ref[order(rownames(class_ref)), ]
-    class_ref <- class_ref[, colSums(class_ref) > 0]
+    class_ref <- class_ref[order(rownames(class_ref)), , drop = FALSE]
+    class_ref <- class_ref[, colSums(class_ref) > 0, drop = FALSE]
     
     return(list(class_ref = class_ref, dat = dat))
 }
@@ -196,7 +196,7 @@ createReference <- function(object_ref, class_col = "cell_type1") {
         summarise(med_exprs = median(exprs))
     class_ref <- reshape2::dcast(class_ref, gene ~ cell_class, value.var = "med_exprs")
     rownames(class_ref) <- class_ref$gene
-    class_ref <- class_ref[, 2:ncol(class_ref)]
+    class_ref <- class_ref[, 2:ncol(class_ref), drop = FALSE]
     return(class_ref)
 }
 

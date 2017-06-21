@@ -46,6 +46,13 @@ macosko <- readRDS("~/data/macosko.rds")
 
 nestorowa <- readRDS("~/data/nestorowa.rds")
 
+ee50 <- readRDS("~/Desktop/ee50.rds")
+cc97 <- readRDS("~/Desktop/cc97.rds")
+rc44 <- readRDS("~/Desktop/rc44.rds")
+ca76 <- readRDS("~/Desktop/ca76.rds")
+is76 <- readRDS("~/Desktop/is76.rds")
+sw87 <- readRDS("~/Desktop/sw87.rds")
+
 # unify cell type annotations
 segerstolpe <- segerstolpe[,pData(segerstolpe)$cell_type1 != "not applicable"]
 xin <- xin[,pData(xin)$cell_type1 != "alpha.contaminated"]
@@ -58,8 +65,8 @@ baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feat
 
 ref <- read.table("~/Desktop/refs/baron-human.txt", check.names = FALSE, sep = "\t")
 
-scmap_ref <- wang
-scmap_map <- deng
+scmap_ref <- ee50
+scmap_map <- cc97
 
 # select features
 scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE)
@@ -74,7 +81,8 @@ write.table(d, "~/Desktop/refs/nestorowa.txt", quote = F, sep = "\t")
 scmap_map <- projectData(
     scmap_map,
     scmap_ref,
-    method = "scmap"
+    method = "scmap",
+    threshold = 0.7
 )
 
 scmap_map <- projectData(

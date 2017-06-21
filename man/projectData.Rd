@@ -8,16 +8,13 @@
 \alias{projectData}
 \title{scmap main function}
 \usage{
-projectData.SCESet(object_map, object_ref, class_col, class_ref, method,
-  threshold)
+projectData.SCESet(map, object_ref, class_col, class_ref, method, threshold)
 
-\S4method{projectData}{SCESet}(object_map = NULL, object_ref = NULL,
+\S4method{projectData}{SCESet}(map = NULL, object_ref = NULL,
   class_col = "cell_type1", class_ref = NULL, method = "scmap",
   threshold = 0.7)
 }
 \arguments{
-\item{object_map}{SCESet to map}
-
 \item{object_ref}{reference SCESet set}
 
 \item{class_col}{column name in the pData slot of the reference SCESet containing the cell classification information}
@@ -27,6 +24,8 @@ projectData.SCESet(object_map, object_ref, class_col, class_ref, method,
 \item{method}{which method to use}
 
 \item{threshold}{threshold on similarity (or probability for SVM and RF)}
+
+\item{object_map}{SCESet to map}
 }
 \description{
 Mapping of one dataset to another

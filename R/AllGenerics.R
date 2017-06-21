@@ -9,7 +9,7 @@ setGeneric("setFeatures", function(object, features = NULL) {
 })
 
 #' @export
-setGeneric("projectData", function(object_map = NULL, object_ref = NULL, class_col = "cell_type1", 
+setGeneric("projectData", function(map = NULL, object_ref = NULL, class_col = "cell_type1", 
     class_ref = NULL, method = "scmap", threshold = 0.7) {
     standardGeneric("projectData")
 })
