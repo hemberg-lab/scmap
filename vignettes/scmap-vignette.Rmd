@@ -63,10 +63,10 @@ xin <- xin[,pData(xin)$cell_type1 != "gamma.contaminated"]
 # uppercase mouse genes
 baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feature_symbol)
 
-ref <- read.table("~/Desktop/refs/baron-human.txt", check.names = FALSE, sep = "\t")
+ref <- read.table("~/Desktop/refs/nestorowa.txt", check.names = FALSE, sep = "\t")
 
 scmap_ref <- ee50
-scmap_map <- cc97
+scmap_map <- kolodziejczyk
 
 # select features
 scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE)

@@ -235,47 +235,28 @@ projectData.SCESet <- function(map, object_ref, class_col, class_ref, method, th
         unique_labs <- unlist(apply(cons, 1, function(x) {length(unique(x))}))
         
         ## all similarities agree
-        labs[unique_labs == 1] <- cons[unique_labs == 1, 1, drop = FALSE]
-        # if (length(which(unique_labs == 1)) > 1) {
-            maxs_tmp <- unlist(apply(maximums[unique_labs == 1, ], 1, max))
+        if (length(which(unique_labs == 1)) > 0) {
+            labs[unique_labs == 1] <- cons[unique_labs == 1, 1]
+            maxs_tmp <- unlist(apply(maximums[unique_labs == 1, , drop = FALSE], 1, max))
             maxs[unique_labs == 1] <- maxs_tmp
-        # } else {
-        #     if (length(which(unique_labs == 1)) != 0) {
-        #         maxs_tmp <- max(maximums[unique_labs == 1, ])
-        #         maxs[unique_labs == 1] <- maxs_tmp
-        #     }
-        # }
-        
+        }
+
         ## only two similarities agree
-        tmp <- cons[unique_labs == 2, ]
-        ### run only of there are cases when two similarities agree
-        if (length(which(unique_labs == 2)) > 1) {
+        if (length(which(unique_labs == 2)) > 0) {
+            tmp <- cons[unique_labs == 2, , drop = FALSE]
             inds <- unlist(apply(tmp, 1, function(x) {which(duplicated(x))}))
             labs[unique_labs == 2] <- tmp[cbind(seq_along(inds), inds)]
             
             ## calculate maximum similarity in case of two agreeing similarities
             inds <- matrix(unlist(apply(apply(tmp, 2, `==`, labs[unique_labs == 2]), 1, which)), ncol = 2, byrow = TRUE)
             maxs_tmp <- cbind(
-                maximums[unique_labs == 2, ][cbind(seq_along(inds[,1]), inds[,1])],
-                maximums[unique_labs == 2, ][cbind(seq_along(inds[,1]), inds[,2])]
+                maximums[unique_labs == 2, , drop = FALSE][cbind(seq_along(inds[,1]), inds[,1])],
+                maximums[unique_labs == 2, , drop = FALSE][cbind(seq_along(inds[,1]), inds[,2])]
             )
             maxs_tmp <- apply(maxs_tmp, 1, max)
             maxs[unique_labs == 2] <- maxs_tmp
-        } else {
-            if (length(which(unique_labs == 2)) != 0) {
-                inds <- which(duplicated(tmp))
-                labs[unique_labs == 2] <- tmp[inds]
-                
-                ## calculate maximum similarity in case of two agreeing similarities
-                inds <- which(tmp == labs[unique_labs == 2])
-                maxs_tmp <- c(
-                    maximums[unique_labs == 2, ][inds[1]],
-                    maximums[unique_labs == 2, ][inds[2]]
-                )
-                maxs_tmp <- max(maxs_tmp)
-                maxs[unique_labs == 2] <- maxs_tmp
-            }
         }
+
         ## check the similarity threshold
         labs[!is.na(maxs) & maxs < threshold] <- "unassigned"
     }
