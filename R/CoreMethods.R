@@ -248,7 +248,21 @@ projectData.SCESet <- function(map, object_ref, class_col, class_ref, method, th
             labs[unique_labs == 2] <- tmp[cbind(seq_along(inds), inds)]
             
             ## calculate maximum similarity in case of two agreeing similarities
-            inds <- matrix(unlist(apply(apply(tmp, 2, `==`, labs[unique_labs == 2]), 1, which)), ncol = 2, byrow = TRUE)
+            inds <- 
+                matrix(
+                    unlist(
+                        apply(
+                            matrix(
+                                unlist(
+                                    apply(tmp, 2, `==`, labs[unique_labs == 2])
+                                ), 
+                                ncol = 3, byrow = TRUE),
+                            1,
+                            which
+                        )
+                    ), 
+                    ncol = 2, byrow = TRUE
+                )
             maxs_tmp <- cbind(
                 maximums[unique_labs == 2, , drop = FALSE][cbind(seq_along(inds[,1]), inds[,1])],
                 maximums[unique_labs == 2, , drop = FALSE][cbind(seq_along(inds[,1]), inds[,2])]
