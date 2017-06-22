@@ -66,7 +66,7 @@ baron_m@featureData@data$feature_symbol <- toupper(baron_m@featureData@data$feat
 ref <- read.table("~/Desktop/refs/deng-reads.txt", check.names = FALSE, sep = "\t")
 
 scmap_ref <- yan
-scmap_map <- fan
+scmap_map <- yan
 
 # select features
 scmap_ref <- getFeatures(scmap_ref, suppress_plot = FALSE)

@@ -56,14 +56,14 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
     res[, 1] <- paste0(res[, 1], " ")
     res[, 2] <- paste0(" ", res[, 2])
     
-    colnames(res) <- c("From", "To", "Weight")
+    colnames(res) <- c("From", "To", "# of cells")
     
     if (!is.null(colors)) {
         colors <- paste(colors, collapse = "', '")
         colors <- paste0("['", colors, "']")
     }
     
-    Sankey <- gvisSankey(res, from = "From", to = "To", weight = "Weight", options = list(width = plot_width, 
+    Sankey <- gvisSankey(res, from = "From", to = "To", weight = "# of cells", options = list(width = plot_width, 
         height = plot_height, sankey = paste0("{
                 node:{
                     label:{
