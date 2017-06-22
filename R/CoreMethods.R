@@ -40,6 +40,7 @@ getFeatures.SCESet <- function(object, n_features, suppress_plot) {
     f_data <- object@featureData@data
     tmp <- linearModel(f_data, n_features)
     f_data$scmap_features <- tmp$scmap_features
+    f_data$scmap_scores <- tmp$scmap_scores
     fData(object) <- new("AnnotatedDataFrame", data = f_data)
     
     if (!suppress_plot) {
@@ -178,7 +179,12 @@ projectData.SCESet <- function(map, object_ref, class_col, class_ref, method, th
     if (is.null(object_ref)) {
         if (nrow(class_ref) < 10) {
             warning("There are less than ten features in common between the Reference and Projection datasets. Most probably they come from different organisms!")
-            return(object_map)
+            return(map)
+        }
+    } else {
+        if (nrow(object_ref) < 10) {
+            warning("There are less than ten features in common between the Reference and Projection datasets. Most probably they come from different organisms!")
+            return(map)
         }
     }
     
@@ -199,7 +205,7 @@ projectData.SCESet <- function(map, object_ref, class_col, class_ref, method, th
         
         if (ncol(class_ref) == 0) {
             warning(paste0("Median expression in the selected features is 0 in every cell, please redefine your features!"))
-            return(object_map)
+            return(map)
         }
         
         # run scmap

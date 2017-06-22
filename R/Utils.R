@@ -122,6 +122,7 @@ linearModel <- function(f_data, n_features) {
                                  !grepl("ERCC-", f_data$feature_symbol))
     dropouts <- log2(f_data$pct_dropout[dropouts_filter])
     expression <- f_data$mean_exprs[dropouts_filter]
+    feature_symbols <- f_data$feature_symbol[dropouts_filter]
     
     fit <- lm(dropouts ~ expression)
     gene_inds <- as.numeric(names(head(sort(fit$residuals, decreasing = T), 
@@ -130,13 +131,16 @@ linearModel <- function(f_data, n_features) {
     scmap_features <- rep(FALSE, nrow(f_data))
     scmap_features[dropouts_filter[gene_inds]] <- TRUE
     
+    scmap_scores <- rep(NA, nrow(f_data))
+    scmap_scores[dropouts_filter] <- fit$residuals
+    
     d <- as.data.frame(cbind(expression, dropouts))
     d$Gene <- f_data$feature_symbol[dropouts_filter]
     d$Features <- "Other"
     d$Features[gene_inds] <- "Selected"
     d$Features <- factor(d$Features, levels = c("Selected", "Other"))
     
-    return(list(scmap_features = scmap_features, for_plotting = d, fit = fit))
+    return(list(scmap_features = scmap_features, scmap_scores = scmap_scores, for_plotting = d, fit = fit))
 }
 
 #' Plot feature distibution and highlight the most informative features.
@@ -156,11 +160,10 @@ plotFeatures <- function(object, n_features = 500) {
 ggplot_features <- function(d, fit) {
     cols <- c("#d73027", "#4575b4")
     p <- ggplot(d, aes(x = expression, y = dropouts, colour = Features)) +
-        geom_point(aes(text = paste("Gene:", Gene)), size = 0.7) +
+        geom_point(size = 0.7) +
         scale_colour_manual(values = cols) +
-        guides(colour = FALSE) +
         labs(x = "log2(Expression)", y = "log2(% of dropouts)") +
-        geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1], size = 1.3) +
+        geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
         theme_classic(base_size = 12)
     return(p)
 }
