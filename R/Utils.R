@@ -1,3 +1,19 @@
+#' Single cell RNA-Seq data extracted from a publication by Yan et al.
+#'
+#' @source \url{http://dx.doi.org/10.1038/nsmb.2660}
+#'
+#' Columns represent cells, rows represent genes expression values.
+#'
+"yan"
+
+#' Cell type annotations for data extracted from a publication by Yan et al.
+#'
+#' @source \url{http://dx.doi.org/10.1038/nsmb.2660}
+#'
+#' Each row corresponds to a single cell from `yan` dataset
+#'
+"ann"
+
 #' Plot Sankey diagram comparing two clusterings
 #' 
 #' Sometimes it is useful to see how the clusters in two different clustering
@@ -41,12 +57,12 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
     res <- reshape2::melt(res.all)
     res <- res[res$value != 0, ]
     
-    if (ncol(res.all) > 1) {    
+    if (ncol(res.all) > 1) {
         maxs <- res %>% dplyr::group_by(Var1) %>% dplyr::summarise(max = max(value))
         
         res <- merge(res, maxs)
         maxs <- res[res$value == res$max, ]
-        maxs <- maxs[order(maxs$value, decreasing = T), ]
+        maxs <- maxs[order(maxs$value, decreasing = TRUE), ]
         res <- res[res$value != res$max, ]
         res <- rbind(maxs, res)
         res <- res[, 1:3]
@@ -95,7 +111,7 @@ support_vector_machines <- function(train, study, kern = "linear") {
     labs <- factor(rownames(train))
     rownames(train) <- NULL
     model <- tryCatch(e1071::svm(train, labs, kernel = kern, probability = TRUE), error = function(cond) return(NA))
-    pred <- stats::predict(model, t(study), probability=TRUE)
+    pred <- stats::predict(model, t(study), probability = TRUE)
     return(pred = pred)
 }
 
@@ -117,16 +133,14 @@ random_forest <- function(train, study, ntree = 50) {
 #' @importFrom stats lm
 linearModel <- function(f_data, n_features) {
     # do not consider ERCC spike-ins and genes with 0 dropout rate
-    dropouts_filter <- which(f_data$pct_dropout != 0 & 
-                                 f_data$pct_dropout != 100 &
-                                 !grepl("ERCC-", f_data$feature_symbol))
+    dropouts_filter <- which(f_data$pct_dropout != 0 & f_data$pct_dropout != 100 & !grepl("ERCC-", 
+        f_data$feature_symbol))
     dropouts <- log2(f_data$pct_dropout[dropouts_filter])
     expression <- f_data$mean_exprs[dropouts_filter]
     feature_symbols <- f_data$feature_symbol[dropouts_filter]
     
     fit <- lm(dropouts ~ expression)
-    gene_inds <- as.numeric(names(head(sort(fit$residuals, decreasing = T), 
-                                       n_features)))
+    gene_inds <- as.numeric(names(head(sort(fit$residuals, decreasing = TRUE), n_features)))
     
     scmap_features <- rep(FALSE, nrow(f_data))
     scmap_features[dropouts_filter[gene_inds]] <- TRUE
@@ -140,7 +154,8 @@ linearModel <- function(f_data, n_features) {
     d$Features[gene_inds] <- "Selected"
     d$Features <- factor(d$Features, levels = c("Selected", "Other"))
     
-    return(list(scmap_features = scmap_features, scmap_scores = scmap_scores, for_plotting = d, fit = fit))
+    return(list(scmap_features = scmap_features, scmap_scores = scmap_scores, for_plotting = d, 
+        fit = fit))
 }
 
 #' Plot feature distibution and highlight the most informative features.
@@ -159,48 +174,51 @@ plotFeatures <- function(object, n_features = 500) {
 #' @importFrom ggplot2 ggplot aes geom_point scale_colour_manual labs geom_abline theme_classic
 ggplot_features <- function(d, fit) {
     cols <- c("#d73027", "#4575b4")
-    p <- ggplot(d, aes(x = expression, y = dropouts, colour = Features)) +
-        geom_point(size = 0.7) +
-        scale_colour_manual(values = cols) +
-        labs(x = "log2(Expression)", y = "log2(% of dropouts)") +
-        geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
-        theme_classic(base_size = 12)
+    p <- ggplot(d, aes(x = expression, y = dropouts, colour = Features)) + geom_point(size = 0.7) + 
+        scale_colour_manual(values = cols) + labs(x = "log2(Expression)", y = "log2(% of dropouts)") + 
+        geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) + theme_classic(base_size = 12)
     return(p)
 }
 
-prepareData <- function(class_ref, dat) {
+prepareData <- function(reference, dat) {
     dat <- dat[order(rownames(dat)), ]
-    class_ref <- class_ref[order(rownames(class_ref)), , drop = FALSE]
-    class_ref <- class_ref[, colSums(class_ref) > 0, drop = FALSE]
+    reference <- reference[order(rownames(reference)), , drop = FALSE]
+    reference <- reference[, colSums(reference) > 0, drop = FALSE]
     
-    return(list(class_ref = class_ref, dat = dat))
+    return(list(reference = reference, dat = dat))
 }
 
+
+#' Create a precomputed Reference
+#' 
+#' Calculates centroids of each cell type and merge them into a single table.
+#'
+#' @param reference reference SCESet set
+#' @param cell_type_column column name in the pData slot of the reference SCESet containing the cell classification information
+#'
 #' @importFrom scater get_exprs
 #' @importFrom dplyr group_by summarise %>%
 #' @importFrom reshape2 melt dcast
 #' @importFrom stats median
 #' @export
-createReference <- function(object_ref, class_col = "cell_type1") {
+createReference <- function(reference, cell_type_column = "cell_type1") {
     gene <- cell_class <- exprs <- NULL
-    if (is.null(pData(object_ref)[[class_col]])) {
-        warning(paste0("Please define a correct class column of the reference scater object using the `class_col` parameter!"))
+    if (is.null(pData(reference)[[cell_type_column]])) {
+        warning(paste0("Please define a correct class column of the reference scater object using the `cell_type_column` parameter!"))
         return(object_map)
     }
-    class_ref <- get_exprs(object_ref, "exprs")
-    rownames(class_ref) <- fData(object_ref)$feature_symbol
-    colnames(class_ref) <- pData(object_ref)[[class_col]]
+    reference_local <- get_exprs(reference, "exprs")
+    rownames(reference_local) <- fData(reference)$feature_symbol
+    colnames(reference_local) <- pData(reference)[[cell_type_column]]
     
-    # calculate median feature expression in every cell class of object_ref
-    class_ref <- reshape2::melt(class_ref)
-    colnames(class_ref) <- c("gene", "cell_class", "exprs")
-    class_ref <- class_ref %>% 
-        group_by(gene, cell_class) %>% 
-        summarise(med_exprs = median(exprs))
-    class_ref <- reshape2::dcast(class_ref, gene ~ cell_class, value.var = "med_exprs")
-    rownames(class_ref) <- class_ref$gene
-    class_ref <- class_ref[, 2:ncol(class_ref), drop = FALSE]
-    return(class_ref)
+    # calculate median feature expression in every cell class of reference
+    reference_local <- reshape2::melt(reference_local)
+    colnames(reference_local) <- c("gene", "cell_class", "exprs")
+    reference_local <- reference_local %>% group_by(gene, cell_class) %>% summarise(med_exprs = median(exprs))
+    reference_local <- reshape2::dcast(reference_local, gene ~ cell_class, value.var = "med_exprs")
+    rownames(reference_local) <- reference_local$gene
+    reference_local <- reference_local[, 2:ncol(reference_local), drop = FALSE]
+    return(reference_local)
 }
 
 #' @importFrom scater newSCESet is_exprs<- calculateQCMetrics
@@ -231,13 +249,13 @@ mergeData <- function(object_reference, object_to_map) {
     
     res_sceset <- newSCESet(exprsData = res, logExprsOffset = 1)
     
-    if(is.null(object_reference@phenoData@data$scmap_labs)) {
+    if (is.null(object_reference@phenoData@data$scmap_labs)) {
         ref_cell_type <- as.character(object_reference@phenoData@data$cell_type1)
     } else {
         ref_cell_type <- as.character(object_reference@phenoData@data$scmap_labs)
     }
     
-    if(is.null(object_to_map@phenoData@data$scmap_labs)) {
+    if (is.null(object_to_map@phenoData@data$scmap_labs)) {
         map_cell_type <- as.character(object_to_map@phenoData@data$cell_type1)
     } else {
         map_cell_type <- as.character(object_to_map@phenoData@data$scmap_labs)
@@ -253,7 +271,7 @@ mergeData <- function(object_reference, object_to_map) {
     f_data$feature_symbol <- rownames(res)
     fData(res_sceset) <- new("AnnotatedDataFrame", data = f_data)
     
-    # res_sceset <- res_sceset[, p_data$cell_type != "unassigned"]
+    # res_sceset <- res_sceset[, p_data$cell_type != 'unassigned']
     res_sceset <- calculateQCMetrics(res_sceset)
     
     return(res_sceset)

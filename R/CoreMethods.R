@@ -121,10 +121,9 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' 
 #' Mapping of one dataset to another
 #' 
-#' @param object_map SCESet to map
-#' @param object_ref reference SCESet set
-#' @param class_col column name in the pData slot of the reference SCESet containing the cell classification information
-#' @param class_ref reference cell buckets
+#' @param projection SCESet to project
+#' @param reference reference SCESet set
+#' @param cell_type_column column name in the pData slot of the reference SCESet containing the cell classification information
 #' @param method which method to use
 #' @param threshold threshold on similarity (or probability for SVM and RF)
 #' 
@@ -136,109 +135,110 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' @importFrom utils head
 #' @importFrom stats cor
 #' @export
-projectData.SCESet <- function(map, object_ref, class_col, class_ref, method, threshold) {
-    
-    object_map <- map
-    
-    if (is.null(object_map)) {
-        warning(paste0("Please define a scater object to map using the `object_map` parameter!"))
-        return(object_map)
+projectData.SCESet <- function(projection, reference, cell_type_column, method, threshold) {
+    if (is.null(projection)) {
+        warning(paste0("Please define a scater object to map using the `projection` parameter!"))
+        return(projection)
     }
-    if (is.null(object_ref)) {
-        if (is.null(class_ref)) {
-            warning(paste0("Please define either a reference scater object using the `object_ref` parameter or scmap reference buckets using the `class_ref`!"))
-            return(object_map)
-        }
+    if (is.null(reference)) {
+        warning(paste0("Please define either a reference scater object or precomputed scmap reference using the `reference` parameter!"))
+        return(projection)
     } else {
-        if (is.null(object_ref@featureData@data$scmap_features)) {
-            warning("There are no features selected in the Reference dataset! Please run `getFeatures()` first!")
-            return(object_map)
-        }
-        if (!class_col %in% colnames(object_ref@phenoData@data)) {
-            warning(paste0("Please define a correct class column of the reference scater object pData slot using the `class_col` parameter!"))
-            return(object_map)
+        if (class(reference) == "SCESet") {
+            if (is.null(reference@featureData@data$scmap_features)) {
+                warning("There are no features selected in the Reference dataset! Please run `getFeatures()` first!")
+                return(projection)
+            }
+            if (!cell_type_column %in% colnames(reference@phenoData@data)) {
+                warning(paste0("Please define a correct class column of the reference scater object pData slot using the `cell_type_column` parameter!"))
+                return(projection)
+            }
+        } else {
+            
         }
     }
-    if (is.null(object_ref) & (method == "svm" | method == "rf")) {
-        warning("SVM/RF do not work with the reference provided for scmap. Please provide the full reference dataset.")
-        return(object_map)
+    if (class(reference) != "SCESet" & (method == "svm" | method == "rf")) {
+        warning("SVM/RF do not work with the precomputed reference provided for scmap. Please provide the full reference dataset.")
+        return(projection)
     }
+    
+    projection_local <- projection
     
     # find and select only common features, then subset both datasets
-    if (is.null(class_ref)) {
-        object_map <- setFeatures(object_map, fData(object_ref)$feature_symbol[fData(object_ref)$scmap_features])
-        object_ref <- setFeatures(object_ref, fData(object_map)$feature_symbol[fData(object_map)$scmap_features])
-        object_map <- object_map[fData(object_map)$scmap_features, ]
-        object_ref <- object_ref[fData(object_ref)$scmap_features, ]
+    if (class(reference) == "SCESet") {
+        projection_local <- setFeatures(projection_local, fData(reference)$feature_symbol[fData(reference)$scmap_features])
+        reference <- setFeatures(reference, fData(projection_local)$feature_symbol[fData(projection_local)$scmap_features])
+        projection_local <- projection_local[fData(projection_local)$scmap_features, 
+            ]
+        reference <- reference[fData(reference)$scmap_features, ]
     } else {
-        object_map <- setFeatures(object_map, rownames(class_ref))
-        class_ref <- class_ref[rownames(class_ref) %in% fData(object_map)$feature_symbol[fData(object_map)$scmap_features],]
-        object_map <- object_map[fData(object_map)$scmap_features, ]
+        projection_local <- setFeatures(projection_local, rownames(reference))
+        reference <- reference[rownames(reference) %in% fData(projection_local)$feature_symbol[fData(projection_local)$scmap_features], 
+            , drop = FALSE]
+        projection_local <- projection_local[fData(projection_local)$scmap_features, 
+            ]
     }
     
-    if (is.null(object_ref)) {
-        if (nrow(class_ref) < 10) {
+    if (is.null(reference)) {
+        if (nrow(reference) < 10) {
             warning("There are less than ten features in common between the Reference and Projection datasets. Most probably they come from different organisms!")
-            return(map)
+            return(projection)
         }
     } else {
-        if (nrow(object_ref) < 10) {
+        if (nrow(reference) < 10) {
             warning("There are less than ten features in common between the Reference and Projection datasets. Most probably they come from different organisms!")
-            return(map)
+            return(projection)
         }
     }
     
     # get expression values of the projection dataset
-    dat <- get_exprs(object_map, "exprs")
-    rownames(dat) <- object_map@featureData@data$feature_symbol
+    dat <- get_exprs(projection_local, "exprs")
+    rownames(dat) <- projection_local@featureData@data$feature_symbol
     
     if (method == "scmap") {
         # create the reference
-        if (is.null(class_ref)) {
-            class_ref <- createReference(object_ref, class_col)
+        if (class(reference) == "SCESet") {
+            reference_local <- createReference(reference, cell_type_column)
+        } else {
+            reference_local <- reference
         }
         
         # prepare the datasets for projection
-        tmp <- prepareData(class_ref, dat)
-        class_ref <- tmp$class_ref
+        tmp <- prepareData(reference_local, dat)
+        reference_local <- tmp$reference
         dat <- tmp$dat
         
-        if (ncol(class_ref) == 0) {
+        if (ncol(reference_local) == 0) {
             warning(paste0("Median expression in the selected features is 0 in every cell, please redefine your features!"))
             return(map)
         }
         
         # run scmap
-        tmp <- t(class_ref)
+        tmp <- t(reference_local)
         res <- proxy::simil(tmp, t(dat), method = "cosine")
-        res <- matrix(res, ncol = nrow(tmp), byrow = T)
+        res <- matrix(res, ncol = nrow(tmp), byrow = TRUE)
         max_inds1 <- max.col(res)
         maxs1 <- unlist(apply(res, 1, max))
         
-        res <- cor(class_ref, dat, method = "pearson")
+        res <- cor(reference_local, dat, method = "pearson")
         max_inds2 <- max.col(t(res))
         maxs2 <- unlist(apply(res, 2, max))
         
-        res <- cor(class_ref, dat, method = "spearman")
+        res <- cor(reference_local, dat, method = "spearman")
         max_inds3 <- max.col(t(res))
         maxs3 <- unlist(apply(res, 2, max))
         
-        cons <- cbind(
-            colnames(class_ref)[max_inds1],
-            colnames(class_ref)[max_inds2],
-            colnames(class_ref)[max_inds3]
-        )
+        cons <- cbind(colnames(reference_local)[max_inds1], colnames(reference_local)[max_inds2], 
+            colnames(reference_local)[max_inds3])
         
-        maximums <- cbind(
-            maxs1,
-            maxs2,
-            maxs3
-        )
+        maximums <- cbind(maxs1, maxs2, maxs3)
         
         # create labels
         maxs <- rep(NA, nrow(cons))
         labs <- rep("unassigned", nrow(cons))
-        unique_labs <- unlist(apply(cons, 1, function(x) {length(unique(x))}))
+        unique_labs <- unlist(apply(cons, 1, function(x) {
+            length(unique(x))
+        }))
         
         ## all similarities agree
         if (length(which(unique_labs == 1)) > 0) {
@@ -246,54 +246,42 @@ projectData.SCESet <- function(map, object_ref, class_col, class_ref, method, th
             maxs_tmp <- unlist(apply(maximums[unique_labs == 1, , drop = FALSE], 1, max))
             maxs[unique_labs == 1] <- maxs_tmp
         }
-
+        
         ## only two similarities agree
         if (length(which(unique_labs == 2)) > 0) {
             tmp <- cons[unique_labs == 2, , drop = FALSE]
-            inds <- unlist(apply(tmp, 1, function(x) {which(duplicated(x))}))
+            inds <- unlist(apply(tmp, 1, function(x) {
+                which(duplicated(x))
+            }))
             labs[unique_labs == 2] <- tmp[cbind(seq_along(inds), inds)]
             
             ## calculate maximum similarity in case of two agreeing similarities
-            inds <- 
-                matrix(
-                    unlist(
-                        apply(
-                            matrix(
-                                unlist(
-                                    apply(tmp, 2, `==`, labs[unique_labs == 2])
-                                ), 
-                                ncol = 3, byrow = TRUE),
-                            1,
-                            which
-                        )
-                    ), 
-                    ncol = 2, byrow = TRUE
-                )
-            maxs_tmp <- cbind(
-                maximums[unique_labs == 2, , drop = FALSE][cbind(seq_along(inds[,1]), inds[,1])],
-                maximums[unique_labs == 2, , drop = FALSE][cbind(seq_along(inds[,1]), inds[,2])]
-            )
+            inds <- matrix(unlist(apply(matrix(unlist(apply(tmp, 2, `==`, labs[unique_labs == 
+                2])), ncol = 3, byrow = TRUE), 1, which)), ncol = 2, byrow = TRUE)
+            maxs_tmp <- cbind(maximums[unique_labs == 2, , drop = FALSE][cbind(seq_along(inds[, 
+                1]), inds[, 1])], maximums[unique_labs == 2, , drop = FALSE][cbind(seq_along(inds[, 
+                1]), inds[, 2])])
             maxs_tmp <- apply(maxs_tmp, 1, max)
             maxs[unique_labs == 2] <- maxs_tmp
         }
-
+        
         ## check the similarity threshold
         labs[!is.na(maxs) & maxs < threshold] <- "unassigned"
     }
     
     if (method == "svm") {
         # create the reference
-        class_ref <- get_exprs(object_ref, "exprs")
-        rownames(class_ref) <- fData(object_ref)$feature_symbol
-        colnames(class_ref) <- pData(object_ref)[[class_col]]
+        reference_local <- get_exprs(reference, "exprs")
+        rownames(reference_local) <- fData(reference)$feature_symbol
+        colnames(reference_local) <- pData(reference)[[cell_type_column]]
         
         # prepare the datasets for projection
-        tmp <- prepareData(class_ref, dat)
-        class_ref <- tmp$class_ref
+        tmp <- prepareData(reference_local, dat)
+        reference_local <- tmp$reference
         dat <- tmp$dat
         
         # run support vector machine
-        res <- support_vector_machines(class_ref, dat)
+        res <- support_vector_machines(reference_local, dat)
         probs <- attr(res, "probabilities")
         max_inds <- max.col(probs)
         maxs <- unlist(apply(probs, 1, max))
@@ -305,17 +293,17 @@ projectData.SCESet <- function(map, object_ref, class_col, class_ref, method, th
     
     if (method == "rf") {
         # create the reference
-        class_ref <- get_exprs(object_ref, "exprs")
-        rownames(class_ref) <- fData(object_ref)$feature_symbol
-        colnames(class_ref) <- pData(object_ref)[[class_col]]
+        reference_local <- get_exprs(reference, "exprs")
+        rownames(reference_local) <- fData(reference)$feature_symbol
+        colnames(reference_local) <- pData(reference)[[cell_type_column]]
         
         # prepare the datasets for projection
-        tmp <- prepareData(class_ref, dat)
-        class_ref <- tmp$class_ref
+        tmp <- prepareData(reference_local, dat)
+        reference_local <- tmp$reference
         dat <- tmp$dat
         
         # run random forest
-        res <- random_forest(class_ref, dat)
+        res <- random_forest(reference_local, dat)
         max_inds <- max.col(res)
         maxs <- unlist(apply(res, 1, max))
         
@@ -324,20 +312,20 @@ projectData.SCESet <- function(map, object_ref, class_col, class_ref, method, th
         labs[maxs > threshold] <- colnames(res)[max_inds][maxs > threshold]
     }
     
-    p_data <- map@phenoData@data
+    p_data <- projection@phenoData@data
     p_data$scmap_labs <- labs
     p_data$scmap_siml <- maxs
-    pData(map) <- new("AnnotatedDataFrame", data = p_data)
+    pData(projection) <- new("AnnotatedDataFrame", data = p_data)
     
-    return(map)
+    return(projection)
 }
 
 #' @rdname projectData
 #' @aliases projectData
 #' @importClassesFrom scater SCESet
 #' @export
-setMethod("projectData", signature(map = "SCESet"), function(map, object_ref, 
-    class_col, class_ref, method, threshold) {
-    projectData.SCESet(map, object_ref, class_col, class_ref, method, threshold)
+setMethod("projectData", signature(projection = "SCESet"), function(projection, reference, 
+    cell_type_column, method, threshold) {
+    projectData.SCESet(projection, reference, cell_type_column, method, threshold)
 })
 
