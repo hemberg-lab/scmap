@@ -15,7 +15,8 @@
 #' @param object an object of \code{\link[scater]{SCESet}} class
 #' @param n_features number of the features to be selected
 #' @param suppress_plot boolean parameter, which defines whether to plot 
-#' log(expression) versus log(dropout) distribution for all genes
+#' log(expression) versus log(dropout) distribution for all genes.
+#' Selected features are highlighted with the red colour.
 #'
 #' @return an object of \code{\link[scater]{SCESet}} class with a new column in 
 #' \code{featureData} slot which is called \code{scmap_features}. It can be accessed
@@ -23,10 +24,8 @@
 #'
 #' @name getFeatures
 #'
-#' @importFrom scater fData<-
+#' @import scater
 #' @importFrom methods new
-#'
-#' @export
 getFeatures.SCESet <- function(object, n_features, suppress_plot) {
     if (is.null(object@featureData@data$feature_symbol)) {
         message("There is no feature_symbol column in the featureData slot! 
@@ -54,7 +53,6 @@ getFeatures.SCESet <- function(object, n_features, suppress_plot) {
 #' @rdname getFeatures
 #' @aliases getFeatures
 #' @importClassesFrom scater SCESet
-#' @export
 setMethod("getFeatures", signature(object = "SCESet"), function(object, n_features, suppress_plot) {
     getFeatures.SCESet(object, n_features, suppress_plot)
 })
@@ -77,10 +75,8 @@ setMethod("getFeatures", signature(object = "SCESet"), function(object, n_featur
 #'
 #' @name setFeatures
 #'
-#' @importFrom scater fData<-
+#' @import scater
 #' @importFrom methods new
-#'
-#' @export
 setFeatures.SCESet <- function(object, features) {
     if (is.null(features)) {
         message("Please provide a list of feature names using 'features' argument!")
@@ -112,7 +108,6 @@ setFeatures.SCESet <- function(object, features) {
 #' @rdname setFeatures
 #' @aliases setFeatures
 #' @importClassesFrom scater SCESet
-#' @export
 setMethod("setFeatures", signature(object = "SCESet"), function(object, features) {
     setFeatures.SCESet(object, features)
 })
@@ -127,14 +122,14 @@ setMethod("setFeatures", signature(object = "SCESet"), function(object, features
 #' @param method which method to use
 #' @param threshold threshold on similarity (or probability for SVM and RF)
 #' 
+#' @return Projection SCESet object with labels calculated by `scmap` stored in 
+#' the `scmap_labels` column of the `phenoData` slot.
+#' 
 #' @name projectData
 #' 
-#' @importFrom scater pData<- get_exprs
+#' @import Biobase
 #' @importFrom proxy simil
-#' @importFrom graphics abline hist plot points
-#' @importFrom utils head
 #' @importFrom stats cor
-#' @export
 projectData.SCESet <- function(projection, reference, cell_type_column, method, threshold) {
     if (is.null(projection)) {
         warning(paste0("Please define a scater object to map using the `projection` parameter!"))
@@ -198,6 +193,10 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
     if (method == "scmap") {
         # create the reference
         if (class(reference) == "SCESet") {
+            if (is.null(pData(reference)[[cell_type_column]])) {
+                warning(paste0("Please define a correct class column of the reference scater object using the `cell_type_column` parameter!"))
+                return(projection)
+            }
             reference_local <- createReference(reference, cell_type_column)
         } else {
             reference_local <- reference
@@ -210,7 +209,7 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
         
         if (ncol(reference_local) == 0) {
             warning(paste0("Median expression in the selected features is 0 in every cell, please redefine your features!"))
-            return(map)
+            return(projection)
         }
         
         # run scmap
@@ -323,9 +322,52 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
 #' @rdname projectData
 #' @aliases projectData
 #' @importClassesFrom scater SCESet
-#' @export
 setMethod("projectData", signature(projection = "SCESet"), function(projection, reference, 
     cell_type_column, method, threshold) {
     projectData.SCESet(projection, reference, cell_type_column, method, threshold)
 })
 
+#' Create a precomputed Reference
+#' 
+#' Calculates centroids of each cell type and merge them into a single table.
+#'
+#' @param reference reference SCESet set
+#' @param cell_type_column column name in the pData slot of the reference SCESet 
+#' containing the cell classification information
+#' 
+#' @name createReference
+#'
+#' @return a `data.frame` containing calculated centroids of the cell types of
+#' the Reference dataset
+#'
+#' @import Biobase
+#' @importFrom dplyr group_by summarise %>%
+#' @importFrom reshape2 melt dcast
+#' @importFrom stats median
+createReference.SCESet <- function(reference, cell_type_column) {
+    if (is.null(reference)) {
+        warning(paste0("Please define a reference scater object using the `reference` parameter!"))
+        stop()
+    }
+    gene <- cell_class <- exprs <- NULL
+    reference_local <- get_exprs(reference, "exprs")
+    rownames(reference_local) <- fData(reference)$feature_symbol
+    colnames(reference_local) <- pData(reference)[[cell_type_column]]
+    
+    # calculate median feature expression in every cell class of reference
+    reference_local <- reshape2::melt(reference_local)
+    colnames(reference_local) <- c("gene", "cell_class", "exprs")
+    reference_local <- reference_local %>% group_by(gene, cell_class) %>% summarise(med_exprs = median(exprs))
+    reference_local <- reshape2::dcast(reference_local, gene ~ cell_class, value.var = "med_exprs")
+    rownames(reference_local) <- reference_local$gene
+    reference_local <- reference_local[, 2:ncol(reference_local), drop = FALSE]
+    return(reference_local)
+}
+
+#' @rdname createReference
+#' @aliases createReference
+#' @importClassesFrom scater SCESet
+setMethod("createReference", signature(reference = "SCESet"), function(reference, 
+                                                                    cell_type_column) {
+    createReference.SCESet(reference, cell_type_column)
+})

@@ -96,10 +96,9 @@ The cell type centroids can be precomputed by using the `createReference` method
 reference <- createReference(sceset[fData(sceset)$scmap_features, ])
 ```
 
-One can also visualise the cell type centroids:
+One can also visualise the cell type centroids, e.g.:
 ```{r , fig.height=7}
-library(pheatmap)
-pheatmap(reference, show_rownames = FALSE)
+heatmap(as.matrix(reference))
 ```
 
 Exactly the same projection as above can be performed by providing the precomputed reference instead of the scater object:

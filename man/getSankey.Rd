@@ -20,10 +20,17 @@ getSankey(reference, clusters, plot_width = 400, plot_height = 600,
 note that each cluster in the reference clustering has to have its own color.
 This should be a normal text vector, e.g. c('#FF0000', '#FFA500', '#008000')}
 }
+\value{
+an object returned by `gvisSankey`
+}
 \description{
 Sometimes it is useful to see how the clusters in two different clustering
 solutions correspond to each other. Sankey diagram is a good way to visualize
 them. This function takes as input two clustering solutions and visualizes them
 using a Sankey diagram. The order of the reference clusters is defined by their
 labels in increasing order.
+}
+\examples{
+plot(getSankey(ann[ , 1], ann[ , 1]))
+
 }

@@ -2,16 +2,18 @@
 % Please edit documentation in R/Utils.R
 \name{plotFeatures}
 \alias{plotFeatures}
-\title{Plot feature distibution and highlight the most informative features.}
+\title{Plot feature selection plot}
 \usage{
 plotFeatures(object, n_features = 500)
 }
 \arguments{
 \item{object}{an object of \code{\link[scater]{SCESet}} class}
 
-\item{n_features}{number of the features to be selected.}
+\item{n_features}{number of features to select}
+}
+\value{
+a ggplot object to plot the feature selection plot
 }
 \description{
-Plots log(dropout_rate) versus log2(mean_expression) for all genes. 
-Selected features are highlight with the red colour.
+Plot feature selection plot
 }

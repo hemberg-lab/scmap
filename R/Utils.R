@@ -30,9 +30,14 @@
 #' note that each cluster in the reference clustering has to have its own color.
 #' This should be a normal text vector, e.g. c('#FF0000', '#FFA500', '#008000')
 #' 
+#' @return an object returned by `gvisSankey`
+#' 
 #' @importFrom dplyr %>% summarise group_by
 #' @importFrom reshape2 melt
 #' @importFrom googleVis gvisSankey
+#' 
+#' @examples
+#' plot(getSankey(ann[ , 1], ann[ , 1]))
 #' 
 #' @export
 getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, colors = NULL) {
@@ -50,8 +55,8 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
     rownames(res.all) <- names(table(reference))
     
     if (ncol(res.all) > 1) {
-        res.all <- res.all[order(as.numeric(table(reference)), decreasing = T), order(as.numeric(table(clusters)), 
-            decreasing = T), drop = FALSE]
+        res.all <- res.all[order(as.numeric(table(reference)), decreasing = TRUE), order(as.numeric(table(clusters)), 
+            decreasing = TRUE), drop = FALSE]
     }
     
     res <- reshape2::melt(res.all)
@@ -130,6 +135,7 @@ random_forest <- function(train, study, ntree = 50) {
     return(Prediction)
 }
 
+#' @importFrom utils head
 #' @importFrom stats lm
 linearModel <- function(f_data, n_features) {
     # do not consider ERCC spike-ins and genes with 0 dropout rate
@@ -158,21 +164,21 @@ linearModel <- function(f_data, n_features) {
         fit = fit))
 }
 
-#' Plot feature distibution and highlight the most informative features.
+#' Plot feature selection plot
 #' 
-#' Plots log(dropout_rate) versus log2(mean_expression) for all genes. 
-#' Selected features are highlight with the red colour.
-#'
 #' @param object an object of \code{\link[scater]{SCESet}} class
-#' @param n_features number of the features to be selected.
+#' @param n_features number of features to select
+#' 
+#' @return a ggplot object to plot the feature selection plot
 plotFeatures <- function(object, n_features = 500) {
     f_data <- object@featureData@data
     tmp <- linearModel(f_data, n_features)
-    ggplot_features(tmp$for_plotting, tmp$fit)
+    return(ggplot_features(tmp$for_plotting, tmp$fit))
 }
 
 #' @importFrom ggplot2 ggplot aes geom_point scale_colour_manual labs geom_abline theme_classic
 ggplot_features <- function(d, fit) {
+    dropouts <- Features <- NULL
     cols <- c("#d73027", "#4575b4")
     p <- ggplot(d, aes(x = expression, y = dropouts, colour = Features)) + geom_point(size = 0.7) + 
         scale_colour_manual(values = cols) + labs(x = "log2(Expression)", y = "log2(% of dropouts)") + 
@@ -188,40 +194,7 @@ prepareData <- function(reference, dat) {
     return(list(reference = reference, dat = dat))
 }
 
-
-#' Create a precomputed Reference
-#' 
-#' Calculates centroids of each cell type and merge them into a single table.
-#'
-#' @param reference reference SCESet set
-#' @param cell_type_column column name in the pData slot of the reference SCESet containing the cell classification information
-#'
-#' @importFrom scater get_exprs
-#' @importFrom dplyr group_by summarise %>%
-#' @importFrom reshape2 melt dcast
-#' @importFrom stats median
-#' @export
-createReference <- function(reference, cell_type_column = "cell_type1") {
-    gene <- cell_class <- exprs <- NULL
-    if (is.null(pData(reference)[[cell_type_column]])) {
-        warning(paste0("Please define a correct class column of the reference scater object using the `cell_type_column` parameter!"))
-        return(object_map)
-    }
-    reference_local <- get_exprs(reference, "exprs")
-    rownames(reference_local) <- fData(reference)$feature_symbol
-    colnames(reference_local) <- pData(reference)[[cell_type_column]]
-    
-    # calculate median feature expression in every cell class of reference
-    reference_local <- reshape2::melt(reference_local)
-    colnames(reference_local) <- c("gene", "cell_class", "exprs")
-    reference_local <- reference_local %>% group_by(gene, cell_class) %>% summarise(med_exprs = median(exprs))
-    reference_local <- reshape2::dcast(reference_local, gene ~ cell_class, value.var = "med_exprs")
-    rownames(reference_local) <- reference_local$gene
-    reference_local <- reference_local[, 2:ncol(reference_local), drop = FALSE]
-    return(reference_local)
-}
-
-#' @importFrom scater newSCESet is_exprs<- calculateQCMetrics
+#' @import scater
 mergeData <- function(object_reference, object_to_map) {
     if (class(object_reference) != "SCESet" | class(object_to_map) != "SCESet") {
         warning("Your arguments are not of `SCESet` class!")

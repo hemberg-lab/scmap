@@ -13,11 +13,9 @@ Description: Projecting cells from a scRNA-seq experiment on to the cell-types
     identified in a different experiment.
 License: GPL-3
 Imports:
-    scater,
     dplyr,
     reshape2,
     proxy,
-    graphics,
     utils,
     googleVis,
     ggplot2,
@@ -25,7 +23,7 @@ Imports:
     stats,
     e1071,
     randomForest
-Depends: R(>= 3.4)
+Depends: R(>= 3.4), scater, Biobase
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.0.1
@@ -34,7 +32,8 @@ Suggests: knitr,
 VignetteBuilder: knitr
 biocViews: SingleCell, Software, Classification,
             SupportVectorMachine, RNASeq, Visualization, Transcriptomics, 
-            DataRepresentation, Transcription
+            DataRepresentation, Transcription, Sequencing,
+            Preprocessing, GeneExpression, DataImport
 NeedsCompilation: no
 URL: https://github.com/hemberg-lab/scmap
 BugReports: https://support.bioconductor.org/t/scmap/
