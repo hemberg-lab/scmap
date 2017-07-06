@@ -33,11 +33,11 @@ Projection SCESet object with labels calculated by `scmap` stored in
 the `scmap_labels` column of the `phenoData` slot.
 }
 \description{
-Mapping of one dataset to another
+Projection of one dataset to another
 }
 \examples{
 library(scater)
-pd <- new("AnnotatedDataFrame", data = ann)
+pd <- AnnotatedDataFrame(ann)
 sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
 sceset <- calculateQCMetrics(sceset)
 # use gene names as feature symbols

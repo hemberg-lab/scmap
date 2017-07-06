@@ -2,7 +2,7 @@
 #' 
 #' @examples
 #' library(scater)
-#' pd <- new("AnnotatedDataFrame", data = ann)
+#' pd <- AnnotatedDataFrame(ann)
 #' sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
 #' sceset <- calculateQCMetrics(sceset)
 #' # use gene names as feature symbols
@@ -11,7 +11,7 @@
 #' sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
 #' sceset <- getFeatures(sceset)
 #' 
-setGeneric("getFeatures", function(object, n_features = 500, suppress_plot = TRUE) {
+setGeneric("getFeatures", signature = "object", function(object, n_features = 500, suppress_plot = TRUE) {
     standardGeneric("getFeatures")
 })
 
@@ -19,16 +19,16 @@ setGeneric("getFeatures", function(object, n_features = 500, suppress_plot = TRU
 #' 
 #' @examples
 #' library(scater)
-#' pd <- new("AnnotatedDataFrame", data = ann)
+#' pd <- AnnotatedDataFrame(ann)
 #' sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
 #' sceset <- calculateQCMetrics(sceset)
 #' # use gene names as feature symbols
 #' fData(sceset)$feature_symbol <- featureNames(sceset)
 #' # remove features with duplicated names
 #' sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
-#' sceset <- setFeatures(sceset, c("MMP2", "ZHX3"))
+#' sceset <- setFeatures(sceset, c('MMP2', 'ZHX3'))
 #' 
-setGeneric("setFeatures", function(object, features = NULL) {
+setGeneric("setFeatures", signature = "object", function(object, features = NULL) {
     standardGeneric("setFeatures")
 })
 
@@ -36,7 +36,7 @@ setGeneric("setFeatures", function(object, features = NULL) {
 #' 
 #' @examples
 #' library(scater)
-#' pd <- new("AnnotatedDataFrame", data = ann)
+#' pd <- AnnotatedDataFrame(ann)
 #' sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
 #' sceset <- calculateQCMetrics(sceset)
 #' # use gene names as feature symbols
@@ -46,7 +46,7 @@ setGeneric("setFeatures", function(object, features = NULL) {
 #' sceset <- getFeatures(sceset)
 #' sceset <- projectData(projection = sceset, reference = sceset)
 #' 
-setGeneric("projectData", function(projection = NULL, reference = NULL, cell_type_column = "cell_type1", 
+setGeneric("projectData", signature = "projection", function(projection = NULL, reference = NULL, cell_type_column = "cell_type1", 
     method = "scmap", threshold = 0.7) {
     standardGeneric("projectData")
 })
@@ -55,7 +55,7 @@ setGeneric("projectData", function(projection = NULL, reference = NULL, cell_typ
 #' 
 #' @examples
 #' library(scater)
-#' pd <- new("AnnotatedDataFrame", data = ann)
+#' pd <- AnnotatedDataFrame(ann)
 #' sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
 #' sceset <- calculateQCMetrics(sceset)
 #' # use gene names as feature symbols
@@ -65,7 +65,7 @@ setGeneric("projectData", function(projection = NULL, reference = NULL, cell_typ
 #' sceset <- getFeatures(sceset)
 #' reference <- createReference(sceset[fData(sceset)$scmap_features, ])
 #' 
-setGeneric("createReference", function(reference = NULL, cell_type_column = "cell_type1") {
+setGeneric("createReference", signature = "reference", function(reference = NULL, cell_type_column = "cell_type1") {
     standardGeneric("createReference")
 })
 

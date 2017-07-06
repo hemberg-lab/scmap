@@ -46,7 +46,7 @@ Note that the cell type information has to be stored in the `cell_type1` column 
 
 Now let's create a `scater` object of the `yan` dataset:
 ```{r}
-pd <- new("AnnotatedDataFrame", data = ann)
+pd <- AnnotatedDataFrame(ann)
 sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
 sceset <- calculateQCMetrics(sceset)
 # use gene names as feature symbols
@@ -107,3 +107,10 @@ sceset <- projectData(projection = sceset, reference = reference)
 p_data <- pData(sceset)
 p_data[,colnames(p_data) %in% c("cell_type1", "scmap_labs")]
 ```
+
+# sessionInfo()
+
+```{r echo=FALSE}
+sessionInfo()
+```
+

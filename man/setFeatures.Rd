@@ -36,13 +36,13 @@ in the mapping dataset, otherwise the mapping will not work!
 }
 \examples{
 library(scater)
-pd <- new("AnnotatedDataFrame", data = ann)
+pd <- AnnotatedDataFrame(ann)
 sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
 sceset <- calculateQCMetrics(sceset)
 # use gene names as feature symbols
 fData(sceset)$feature_symbol <- featureNames(sceset)
 # remove features with duplicated names
 sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
-sceset <- setFeatures(sceset, c("MMP2", "ZHX3"))
+sceset <- setFeatures(sceset, c('MMP2', 'ZHX3'))
 
 }

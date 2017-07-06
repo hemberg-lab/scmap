@@ -31,7 +31,7 @@ Calculates centroids of each cell type and merge them into a single table.
 }
 \examples{
 library(scater)
-pd <- new("AnnotatedDataFrame", data = ann)
+pd <- AnnotatedDataFrame(ann)
 sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
 sceset <- calculateQCMetrics(sceset)
 # use gene names as feature symbols

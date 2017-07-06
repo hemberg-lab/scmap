@@ -46,7 +46,7 @@ in the projection dataset, otherwise the mapping will not work!
 }
 \examples{
 library(scater)
-pd <- new("AnnotatedDataFrame", data = ann)
+pd <- AnnotatedDataFrame(ann)
 sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
 sceset <- calculateQCMetrics(sceset)
 # use gene names as feature symbols

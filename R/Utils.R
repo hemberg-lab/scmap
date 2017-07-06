@@ -84,8 +84,8 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
         colors <- paste0("['", colors, "']")
     }
     
-    Sankey <- gvisSankey(res, from = "From", to = "To", weight = "# of cells", options = list(width = plot_width, 
-        height = plot_height, sankey = paste0("{
+    Sankey <- gvisSankey(res, from = "From", to = "To", weight = "# of cells", options = list(width = plot_width, height = plot_height, 
+        sankey = paste0("{
                 node:{
                     label:{
                         fontName:'Arial',
@@ -100,8 +100,7 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
             if (!is.null(colors)) {
                 paste0("link:{
                     colorMode: 'source',
-                    colors: ", 
-                  colors, "
+                    colors: ", colors, "
                 },")
             }, "iterations:0
             }")))
@@ -139,8 +138,7 @@ random_forest <- function(train, study, ntree = 50) {
 #' @importFrom stats lm
 linearModel <- function(f_data, n_features) {
     # do not consider ERCC spike-ins and genes with 0 dropout rate
-    dropouts_filter <- which(f_data$pct_dropout != 0 & f_data$pct_dropout != 100 & !grepl("ERCC-", 
-        f_data$feature_symbol))
+    dropouts_filter <- which(f_data$pct_dropout != 0 & f_data$pct_dropout != 100 & !grepl("ERCC-", f_data$feature_symbol))
     dropouts <- log2(f_data$pct_dropout[dropouts_filter])
     expression <- f_data$mean_exprs[dropouts_filter]
     feature_symbols <- f_data$feature_symbol[dropouts_filter]
@@ -160,8 +158,7 @@ linearModel <- function(f_data, n_features) {
     d$Features[gene_inds] <- "Selected"
     d$Features <- factor(d$Features, levels = c("Selected", "Other"))
     
-    return(list(scmap_features = scmap_features, scmap_scores = scmap_scores, for_plotting = d, 
-        fit = fit))
+    return(list(scmap_features = scmap_features, scmap_scores = scmap_scores, for_plotting = d, fit = fit))
 }
 
 #' Plot feature selection plot
@@ -170,8 +167,10 @@ linearModel <- function(f_data, n_features) {
 #' @param n_features number of features to select
 #' 
 #' @return a ggplot object to plot the feature selection plot
+#' 
+#' @importFrom Biobase fData
 plotFeatures <- function(object, n_features = 500) {
-    f_data <- object@featureData@data
+    f_data <- fData(object)
     tmp <- linearModel(f_data, n_features)
     return(ggplot_features(tmp$for_plotting, tmp$fit))
 }
@@ -180,9 +179,9 @@ plotFeatures <- function(object, n_features = 500) {
 ggplot_features <- function(d, fit) {
     dropouts <- Features <- NULL
     cols <- c("#d73027", "#4575b4")
-    p <- ggplot(d, aes(x = expression, y = dropouts, colour = Features)) + geom_point(size = 0.7) + 
-        scale_colour_manual(values = cols) + labs(x = "log2(Expression)", y = "log2(% of dropouts)") + 
-        geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) + theme_classic(base_size = 12)
+    p <- ggplot(d, aes(x = expression, y = dropouts, colour = Features)) + geom_point(size = 0.7) + scale_colour_manual(values = cols) + 
+        labs(x = "log2(Expression)", y = "log2(% of dropouts)") + geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) + 
+        theme_classic(base_size = 12)
     return(p)
 }
 
@@ -194,57 +193,54 @@ prepareData <- function(reference, dat) {
     return(list(reference = reference, dat = dat))
 }
 
-#' @import scater
+#' @importFrom Biobase fData fData<- pData pData<- AnnotatedDataFrame
+#' @importFrom scater get_exprs newSCESet calculateQCMetrics
 mergeData <- function(object_reference, object_to_map) {
-    if (class(object_reference) != "SCESet" | class(object_to_map) != "SCESet") {
-        warning("Your arguments are not of `SCESet` class!")
-        return()
+    if (!("SCESet" %in% is(object_reference)) | !("SCESet" %in% is(object_to_map))) {
+        stop("Your arguments are not of `SCESet` class!")
     }
-    features_reference <- object_reference@featureData@data$feature_symbol
-    features_to_map <- object_to_map@featureData@data$feature_symbol
+    features_reference <- fData(object_reference)$feature_symbol
+    features_to_map <- fData(object_to_map)$feature_symbol
     common_features <- intersect(features_reference, features_to_map)
     common_features <- sort(common_features)
     
-    dat_reference <- object_reference@assayData[["exprs"]]
-    rownames(dat_reference) <- object_reference@featureData@data$feature_symbol
+    dat_reference <- get_exprs(object_reference, "exprs")
+    rownames(dat_reference) <- fData(object_reference)$feature_symbol
     dat_reference <- dat_reference[rownames(dat_reference) %in% common_features, ]
     dat_reference <- dat_reference[order(rownames(dat_reference)), ]
-    dat_reference <- dat_reference[!duplicated(rownames(dat_reference)), ]
     
-    dat_to_map <- object_to_map@assayData[["exprs"]]
-    rownames(dat_to_map) <- object_to_map@featureData@data$feature_symbol
+    dat_to_map <- get_exprs(object_to_map, "exprs")
+    rownames(dat_to_map) <- fData(object_to_map)$feature_symbol
     dat_to_map <- dat_to_map[rownames(dat_to_map) %in% common_features, ]
     dat_to_map <- dat_to_map[order(rownames(dat_to_map)), ]
-    dat_to_map <- dat_to_map[!duplicated(rownames(dat_to_map)), ]
     
     res <- cbind(dat_reference, dat_to_map)
     colnames(res) <- 1:ncol(res)
     
     res_sceset <- newSCESet(exprsData = res, logExprsOffset = 1)
     
-    if (is.null(object_reference@phenoData@data$scmap_labs)) {
-        ref_cell_type <- as.character(object_reference@phenoData@data$cell_type1)
+    if (is.null(pData(object_reference)$scmap_labs)) {
+        ref_cell_type <- as.character(pData(object_reference)$cell_type1)
     } else {
-        ref_cell_type <- as.character(object_reference@phenoData@data$scmap_labs)
+        ref_cell_type <- as.character(pData(object_reference)$scmap_labs)
     }
     
-    if (is.null(object_to_map@phenoData@data$scmap_labs)) {
-        map_cell_type <- as.character(object_to_map@phenoData@data$cell_type1)
+    if (is.null(pData(object_to_map)$scmap_labs)) {
+        map_cell_type <- as.character(pData(object_to_map)$cell_type1)
     } else {
-        map_cell_type <- as.character(object_to_map@phenoData@data$scmap_labs)
+        map_cell_type <- as.character(pData(object_to_map)$scmap_labs)
     }
     
     cell_type1 <- c(ref_cell_type, map_cell_type)
     
-    p_data <- res_sceset@phenoData@data
+    p_data <- pData(res_sceset)
     p_data <- cbind(p_data, cell_type1)
-    pData(res_sceset) <- new("AnnotatedDataFrame", data = p_data)
+    pData(res_sceset) <- AnnotatedDataFrame(p_data)
     
-    f_data <- res_sceset@featureData@data
+    f_data <- fData(res_sceset)
     f_data$feature_symbol <- rownames(res)
-    fData(res_sceset) <- new("AnnotatedDataFrame", data = f_data)
+    fData(res_sceset) <- AnnotatedDataFrame(f_data)
     
-    # res_sceset <- res_sceset[, p_data$cell_type != 'unassigned']
     res_sceset <- calculateQCMetrics(res_sceset)
     
     return(res_sceset)
