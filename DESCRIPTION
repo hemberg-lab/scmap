@@ -1,0 +1,34 @@
+Package: scmap
+Type: Package
+Title: A tool for unsupervised projection of single cell RNA-seq data
+Version: 0.99.2
+Author: Vladimir Kiselev
+Maintainer: Vladimir Kiselev <vladimir.yu.kiselev@gmail.com>
+Authors@R: c(person("Vladimir", "Kiselev", email =
+        "vladimir.yu.kiselev@gmail.com", role=c("cre", "aut")),
+        person("Martin", "Hemberg", role=c("aut")))
+Description: Single-cell RNA-seq (scRNA-seq) is widely used to
+        investigate the composition of complex tissues since the
+        technology allows researchers to define cell-types using
+        unsupervised clustering of the transcriptome. However, due to
+        differences in experimental methods and computational analyses,
+        it is often challenging to directly compare the cells
+        identified in two different experiments. scmap is a method for
+        projecting cells from a scRNA-seq experiment on to the
+        cell-types identified in a different experiment.
+License: GPL-3
+Imports: Biobase, scater, dplyr, reshape2, matrixStats, proxy, utils,
+        googleVis, ggplot2, methods, stats, e1071, randomForest
+Depends: R(>= 3.4)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
+biocViews: SingleCell, Software, Classification, SupportVectorMachine,
+        RNASeq, Visualization, Transcriptomics, DataRepresentation,
+        Transcription, Sequencing, Preprocessing, GeneExpression,
+        DataImport
+NeedsCompilation: no
+URL: https://github.com/hemberg-lab/scmap
+BugReports: https://support.bioconductor.org/t/scmap/

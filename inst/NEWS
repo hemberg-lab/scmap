@@ -1,0 +1,9 @@
+scmap News
+
+scmap 0.99.2 (Release date: 2017-07-05):
+    
+    * Fixed issues for the first round of reviews at Bioconductor.
+
+scmap 0.99.0 (Release date: 2017-06-28):
+    
+    * The first version of scmap is submitted to Bioconductor.

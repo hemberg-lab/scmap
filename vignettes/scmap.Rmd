@@ -1,0 +1,116 @@
+---
+title: "`scmap` package vignette"
+author: "Vladimir Kiselev"
+date: "`r Sys.Date()`"
+output:
+    BiocStyle::html_document:
+        toc: true
+vignette: >
+  %\VignetteIndexEntry{`scmap` package vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r knitr-options, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
+library(knitr)
+library(googleVis)
+opts_chunk$set(fig.align = 'center', fig.width = 6, fig.height = 5, dev = 'png')
+op <- options(gvis.plot.tag='chart')
+```
+
+# Introduction
+
+Single-cell RNA-seq (scRNA-seq) is widely used to investigate the composition of complex tissues since the technology allows researchers to define cell-types using unsupervised clustering of the transcriptome. However, due to differences in experimental methods and computational analyses, it is often challenging to directly compare the cells identified in two different experiments.
+
+`scmap` is a method for projecting cells from a scRNA-seq experiment on to the cell-types identified in a different experiment. A copy of the `scmap` manuscript is available on [bioRxiv](http://doi.org/10.1101/150292).
+
+# `scater` class
+
+`scmap` is built on top of the Bioconductor’s `scater` class - the The "Single Cell Expression Set" (`SCESet` class). `scmap` operates on objects of class `SCESet` object and writes all of its results back to the `SCESet` object.
+
+# `scmap` Input
+
+If you already have an `SCESet` object, then proceed to the next chapter.
+
+If you have a matrix or a data frame containing expression data then you first need to create an `SCESet` object containing your data. For illustrative purposes we will use an example expression matrix provided with `scmap`. The dataset (`yan`) represents __FPKM__ gene expression of 90 cells derived from human embryo. The authors ([Yan et al.](http://dx.doi.org/10.1038/nsmb.2660)) have defined developmental stages of all cells in the original publication (`ann` data frame). We will use these stages in projection later.
+
+```{r , warning=FALSE, message=FALSE}
+library(scater)
+library(scmap)
+
+head(ann)
+yan[1:3, 1:3]
+```
+
+Note that the cell type information has to be stored in the `cell_type1` column of the `phenoData` slot of the `scater` object.
+
+Now let's create a `scater` object of the `yan` dataset:
+```{r}
+pd <- AnnotatedDataFrame(ann)
+sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
+sceset <- calculateQCMetrics(sceset)
+# use gene names as feature symbols
+fData(sceset)$feature_symbol <- featureNames(sceset)
+# remove features with duplicated names
+sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
+sceset
+```
+
+# Run `scmap`
+
+## Feature Selection
+Once we have a scater object we can run `scmap`. Firstly, we need to select the most informative features from our input dataset:
+```{r}
+sceset <- getFeatures(sceset, suppress_plot = FALSE)
+```
+
+Genes highlighted with the red colour will be used in the futher analysis (projection).
+
+## Projecting
+
+We will project the `yan` dataset to itself:
+```{r}
+sceset <- projectData(projection = sceset, reference = sceset)
+```
+
+In your own analysis you can choose any two scRNASeq datasets and project them to each other. Note that the `getFeatures` functions has to be run on the reference dataset before running the `projectData` function.
+
+# Results
+
+Let's look at the results. The labels produced by `scmap` are located in the `scmap_labs` column of the `phenoData` slot of the projection dataset. We will compare them to the original labels provided by the authors of the publication:
+```{r}
+p_data <- pData(sceset)
+p_data[,colnames(p_data) %in% c("cell_type1", "scmap_labs")]
+```
+
+Clearly the projection is almost perfect. With `scmap` one can also plot a [Sankey diagram](https://developers.google.com/chart/interactive/docs/gallery/sankey) (however, `cell_type1` columns have to be provided in the `phenoData` slots of both the reference and the projection datasets):
+```{r results='asis', tidy=FALSE}
+plot(getSankey(p_data$cell_type1, p_data$scmap_labs))
+```
+
+
+# Creating a precomputed Reference
+
+The cell type centroids can be precomputed by using the `createReference` method:
+```{r}
+reference <- createReference(sceset[fData(sceset)$scmap_features, ])
+```
+
+One can also visualise the cell type centroids, e.g.:
+```{r , fig.height=7}
+heatmap(as.matrix(reference))
+```
+
+Exactly the same projection as above can be performed by providing the precomputed reference instead of the scater object:
+```{r}
+sceset <- projectData(projection = sceset, reference = reference)
+p_data <- pData(sceset)
+p_data[,colnames(p_data) %in% c("cell_type1", "scmap_labs")]
+```
+
+# sessionInfo()
+
+```{r echo=FALSE}
+sessionInfo()
+```
+
