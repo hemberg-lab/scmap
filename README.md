@@ -18,6 +18,9 @@ devtools::install_github("hemberg-lab/scmap")
 __Q__: Where can I report bugs, comments, issues or suggestions?  
 __A__: Please use [this page](https://github.com/hemberg-lab/scmap/issues).
 
+__Q__: Where can I ask questions about __scmap__?  
+__A__: Please use [this page](https://support.bioconductor.org/p/new/post/?tag_val=scmap).
+
 __Q__: Is __scmap__ published?  
 __A__: Not yet, but a copy of __scmap__ manuscript is available on [bioRxiv](http://doi.org/10.1101/150292).
 
