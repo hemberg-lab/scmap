@@ -1,3 +1,6 @@
+
+<img src=inst/scmap.png height="200">
+
 ## scmap - A tool for unsupervised projection of single cell RNA-seq data
 
 Single-cell RNA-seq (scRNA-seq) is widely used to investigate the composition of complex tissues since the technology allows researchers to define cell-types using unsupervised clustering of the transcriptome. However, due to differences in experimental methods and computational analyses, it is often challenging to directly compare the cells identified in two different experiments. Here, we present scmap, a method (source available at https://github.com/hemberg-lab/scmap and the application can be run from http://www.hemberg-lab.cloud/scmap) for projecting cells from a scRNA-seq experiment on to the cell-types identified in a different experiment.
