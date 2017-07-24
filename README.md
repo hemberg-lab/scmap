@@ -8,8 +8,9 @@ Single-cell RNA-seq (scRNA-seq) is widely used to investigate the composition of
 ### Questions
 
 __Q__: How to install/run __scmap__?  
-__A__: In your R session:
+__A__: Please follow instruction on [Bioconductor page](http://bioconductor.org/packages/scmap). If there are any problems you can install __scmap__ from GitHub:
 ```
+# run this in your R session
 install.packages("devtools")
 devtools::install_github("hemberg-lab/scmap")
 ```
