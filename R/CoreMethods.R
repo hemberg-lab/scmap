@@ -360,3 +360,100 @@ createReference.SCESet <- function(reference, cell_type_column) {
 #' @aliases createReference
 #' @importClassesFrom scater SCESet
 setMethod("createReference", "SCESet", createReference.SCESet)
+
+#' Build gene index for a dataset
+#' 
+#' Calculates a fraction of expressed cells per gene per cell type
+#'
+#' @param object object SCESet set
+#' @param cell_type_column column name in the pData slot of the object SCESet 
+#' containing the cell classification information
+#' 
+#' @name buildGeneIndex
+#'
+#' @return a `data.frame` containing calculated gene index
+#'
+#' @importFrom Biobase fData pData
+#' @importFrom scater get_exprs
+#' @importFrom dplyr group_by summarise %>%
+#' @importFrom reshape2 melt dcast
+buildGeneIndex.SCESet <- function(object, cell_type_column) {
+    if (is.null(object)) {
+        stop("Please define a object using the `object` parameter!")
+    }
+    gene <- cell_class <- exprs <- NULL
+    object_local <- get_exprs(object, "exprs") > 0
+    rownames(object_local) <- fData(object)$feature_symbol
+    colnames(object_local) <- pData(object)[[cell_type_column]]
+    
+    # calculate median feature expression in every cell class of object
+    object_local <- reshape2::melt(object_local)
+    colnames(object_local) <- c("gene", "cell_class", "exprs")
+    object_local <- object_local %>% group_by(gene, cell_class) %>% summarise(gene_exprs_prob = sum(exprs)/length(exprs))
+    object_local <- reshape2::dcast(object_local, gene ~ cell_class, value.var = "gene_exprs_prob")
+    rownames(object_local) <- object_local$gene
+    object_local <- object_local[, 2:ncol(object_local), drop = FALSE]
+    return(object_local)
+}
+
+#' @rdname buildGeneIndex
+#' @aliases buildGeneIndex
+#' @importClassesFrom scater SCESet
+setMethod("buildGeneIndex", "SCESet", buildGeneIndex.SCESet)
+
+#' Find a cell type associated with a given gene list
+#' 
+#' Calculates p-values of a log-likelihood of a list of genes to be associated
+#' with each cell type
+#'
+#' @param gene_index a data.frame with cell types in columns and genes in rows
+#' @param gene_list genes that need to be searched in the gene_index
+#' 
+#' @name queryGeneList
+#'
+#' @return a named numeric vector containing p-values
+#'
+#' @importFrom stats pchisq
+queryGeneList.data.frame <- function(gene_index, gene_list) {
+    if (is.null(gene_index)) {
+        stop("Please define a gene_index using the `gene_index` parameter!")
+    }
+    if (is.null(gene_list)) {
+        stop("Please define a list of genes using the `gene_list` parameter!")
+    }
+    if (!"data.frame" %in% is(gene_index)) {
+        stop("The gene_index must be a data.frame!")
+    }
+    if (!"character" %in% is(gene_list)) {
+        stop("The gene_list must be a character vector!")
+    }
+    
+    p0 <- colSums(gene_index) / nrow(gene_index)
+    
+    if (length(gene_list[!gene_list %in% rownames(gene_index)]) != 0) {
+        warning(paste0("Genes: ", paste(gene_list[!gene_list %in% rownames(gene_index)], collapse = ", "), 
+                       " were exluded from search since they are not present in the Gene Index!"))
+        gene_list <- gene_list[gene_list %in% rownames(gene_index)]
+    }
+    
+    if (length(gene_list) == 0) {
+        stop("None of the genes in the gene_list are present in the gene_index!")
+    }
+    
+    gene_index <- gene_index[gene_list, ]
+    lambda <- 2 * log(apply(gene_index, 2, prod) / p0^(nrow(gene_index)))
+    lambda[is.infinite(lambda)] <- NA
+    
+    # compare the probability that each cell type expresses the genes of 
+    # interest vs the baseline. Assuming that the genes are uncorrelated, 
+    # we may calculate the probability of observing them all as a series of 
+    # Bernoulli trials.
+    # Return the p-value (not corrected for multiple testing)
+    p_values <- pchisq(lambda, length(gene_list), lower.tail = F)
+    return(p_values)
+}
+
+#' @rdname queryGeneList
+#' @aliases queryGeneList
+setMethod("queryGeneList", "data.frame", queryGeneList.data.frame)
+

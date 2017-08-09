@@ -69,3 +69,38 @@ setGeneric("createReference", signature = "reference", function(reference = NULL
     standardGeneric("createReference")
 })
 
+#' @export
+#' 
+#' @examples
+#' library(scater)
+#' pd <- AnnotatedDataFrame(ann)
+#' sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
+#' sceset <- calculateQCMetrics(sceset)
+#' # use gene names as feature symbols
+#' fData(sceset)$feature_symbol <- featureNames(sceset)
+#' # remove features with duplicated names
+#' sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
+#' gene_index <- buildGeneIndex(sceset)
+#' 
+setGeneric("buildGeneIndex", signature = "object", function(object = NULL, cell_type_column = "cell_type1") {
+    standardGeneric("buildGeneIndex")
+})
+
+#' @export
+#' 
+#' @examples
+#' library(scater)
+#' pd <- AnnotatedDataFrame(ann)
+#' sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
+#' sceset <- calculateQCMetrics(sceset)
+#' # use gene names as feature symbols
+#' fData(sceset)$feature_symbol <- featureNames(sceset)
+#' # remove features with duplicated names
+#' sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
+#' gene_index <- buildGeneIndex(sceset)
+#' res <- queryGeneList(gene_index, gene_list = c("ELMO2", "PNMA1"))
+#' 
+setGeneric("queryGeneList", signature = "gene_index", function(gene_index = NULL, gene_list = NULL) {
+    standardGeneric("queryGeneList")
+})
+
