@@ -442,6 +442,7 @@ queryGeneList.data.frame <- function(gene_index, gene_list) {
     
     gene_index <- gene_index[gene_list, ]
     lambda <- 2 * log(apply(gene_index, 2, prod) / p0^(nrow(gene_index)))
+    lambda[is.na(lambda)] <- NA
     lambda[is.infinite(lambda)] <- NA
     
     # compare the probability that each cell type expresses the genes of 
