@@ -103,4 +103,3 @@ setGeneric("buildGeneIndex", signature = "object", function(object = NULL, cell_
 setGeneric("queryGeneList", signature = "gene_index", function(gene_index = NULL, gene_list = NULL) {
     standardGeneric("queryGeneList")
 })
-

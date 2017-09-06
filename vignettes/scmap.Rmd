@@ -108,7 +108,6 @@ p_data <- pData(sceset)
 p_data[,colnames(p_data) %in% c("cell_type1", "scmap_labs")]
 ```
 
-
 # Find cell types associated with a given list of genes
 
 If one has a list of genes that you would like to check against you dataset, i.e.

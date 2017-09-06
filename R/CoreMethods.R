@@ -457,4 +457,3 @@ queryGeneList.data.frame <- function(gene_index, gene_list) {
 #' @rdname queryGeneList
 #' @aliases queryGeneList
 setMethod("queryGeneList", "data.frame", queryGeneList.data.frame)
-
