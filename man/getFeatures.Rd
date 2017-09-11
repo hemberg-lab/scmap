@@ -5,19 +5,19 @@
 \alias{getFeatures}
 \alias{getFeatures}
 \alias{getFeatures.SCESet}
-\alias{getFeatures,SCESet-method}
+\alias{getFeatures,SingleCellExperiment-method}
 \alias{getFeatures}
-\title{Select the most informative features (genes/transcripts) for projection}
+\title{Find the most informative features (genes/transcripts) for projection}
 \usage{
 getFeatures(object, n_features = 500, suppress_plot = TRUE)
 
 getFeatures.SCESet(object, n_features, suppress_plot)
 
-\S4method{getFeatures}{SCESet}(object, n_features = 500,
+\S4method{getFeatures}{SingleCellExperiment}(object, n_features = 500,
   suppress_plot = TRUE)
 }
 \arguments{
-\item{object}{an object of \code{\link[scater]{SCESet}} class}
+\item{object}{an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class}
 
 \item{n_features}{number of the features to be selected}
 
@@ -26,9 +26,9 @@ log(expression) versus log(dropout) distribution for all genes.
 Selected features are highlighted with the red colour.}
 }
 \value{
-an object of \code{\link[scater]{SCESet}} class with a new column in 
-\code{featureData} slot which is called \code{scmap_features}. It can be accessed
-by using \code{fData(object)$scmap_features}.
+an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class with a new column in 
+\code{rowData(object)} slot which is called \code{scmap_features}. It can be accessed
+by using \code{as.data.frame(rowData(object))$scmap_features}.
 }
 \description{
 This is a modification of the M3Drop method. Instead of fitting a 
@@ -38,21 +38,24 @@ log(dropout) distribution. After fitting a linear model important features are
  selected as the top N residuals of the linear model.
 }
 \details{
-Please note that \code{object@featureData@data$feature_symbol} column must be 
+Please note that \code{feature_symbol} column of \code{rowData(object)} must be 
 present in the input object and should not contain any duplicated feature names. 
 This column defines feature names used during projection. Feature symbols 
 in the reference dataset must correpond to the feature symbols
 in the projection dataset, otherwise the mapping will not work!
 }
 \examples{
-library(scater)
-pd <- AnnotatedDataFrame(ann)
-sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
-sceset <- calculateQCMetrics(sceset)
+library(SingleCellExperiment)
+sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)
+# this is needed to calculate dropout rate for feature selection
+# important: normcounts have the same zeros as raw counts (fpkm)
+counts(sce) <- normcounts(sce)
+logcounts(sce) <- log2(normcounts(sce) + 1)
 # use gene names as feature symbols
-fData(sceset)$feature_symbol <- featureNames(sceset)
+rowData(sce)$feature_symbol <- rownames(sce)
+isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
 # remove features with duplicated names
-sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
-sceset <- getFeatures(sceset)
+sce <- sce[!duplicated(rownames(sce)), ]
+sce <- getFeatures(sce)
 
 }

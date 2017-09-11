@@ -5,7 +5,7 @@
 \alias{createReference}
 \alias{createReference}
 \alias{createReference.SCESet}
-\alias{createReference,SCESet-method}
+\alias{createReference,SingleCellExperiment-method}
 \alias{createReference}
 \title{Create a precomputed Reference}
 \usage{
@@ -13,13 +13,13 @@ createReference(reference = NULL, cell_type_column = "cell_type1")
 
 createReference.SCESet(reference, cell_type_column)
 
-\S4method{createReference}{SCESet}(reference = NULL,
+\S4method{createReference}{SingleCellExperiment}(reference = NULL,
   cell_type_column = "cell_type1")
 }
 \arguments{
-\item{reference}{reference SCESet set}
+\item{reference}{reference SingleCellExperiment object}
 
-\item{cell_type_column}{column name in the pData slot of the reference SCESet 
+\item{cell_type_column}{column name in the pData slot of the reference SingleCellExperiment object 
 containing the cell classification information}
 }
 \value{
@@ -30,15 +30,18 @@ the Reference dataset
 Calculates centroids of each cell type and merge them into a single table.
 }
 \examples{
-library(scater)
-pd <- AnnotatedDataFrame(ann)
-sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
-sceset <- calculateQCMetrics(sceset)
+library(SingleCellExperiment)
+sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)
+# this is needed to calculate dropout rate for feature selection
+# important: normcounts have the same zeros as raw counts (fpkm)
+counts(sce) <- normcounts(sce)
+logcounts(sce) <- log2(normcounts(sce) + 1)
 # use gene names as feature symbols
-fData(sceset)$feature_symbol <- featureNames(sceset)
+rowData(sce)$feature_symbol <- rownames(sce)
+isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
 # remove features with duplicated names
-sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
-sceset <- getFeatures(sceset)
-reference <- createReference(sceset[fData(sceset)$scmap_features, ])
+sce <- sce[!duplicated(rownames(sce)), ]
+sce <- getFeatures(sce)
+reference <- createReference(sce[rowData(sce)$scmap_features, ])
 
 }

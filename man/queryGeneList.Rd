@@ -28,15 +28,18 @@ Calculates p-values of a log-likelihood of a list of genes to be associated
 with each cell type
 }
 \examples{
-library(scater)
-pd <- AnnotatedDataFrame(ann)
-sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
-sceset <- calculateQCMetrics(sceset)
+library(SingleCellExperiment)
+sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)
+# this is needed to calculate dropout rate for feature selection
+# important: normcounts have the same zeros as raw counts (fpkm)
+counts(sce) <- normcounts(sce)
+logcounts(sce) <- log2(normcounts(sce) + 1)
 # use gene names as feature symbols
-fData(sceset)$feature_symbol <- featureNames(sceset)
+rowData(sce)$feature_symbol <- rownames(sce)
+isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
 # remove features with duplicated names
-sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
-gene_index <- buildGeneIndex(sceset)
+sce <- sce[!duplicated(rownames(sce)), ]
+gene_index <- buildGeneIndex(sce)
 res <- queryGeneList(gene_index, gene_list = c("ELMO2", "PNMA1"))
 
 }

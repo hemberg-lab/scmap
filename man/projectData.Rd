@@ -5,7 +5,7 @@
 \alias{projectData}
 \alias{projectData}
 \alias{projectData.SCESet}
-\alias{projectData,SCESet-method}
+\alias{projectData,SingleCellExperiment-method}
 \alias{projectData}
 \title{scmap main function}
 \usage{
@@ -14,37 +14,41 @@ projectData(projection = NULL, reference = NULL,
 
 projectData.SCESet(projection, reference, cell_type_column, method, threshold)
 
-\S4method{projectData}{SCESet}(projection = NULL, reference = NULL,
-  cell_type_column = "cell_type1", method = "scmap", threshold = 0.7)
+\S4method{projectData}{SingleCellExperiment}(projection = NULL,
+  reference = NULL, cell_type_column = "cell_type1", method = "scmap",
+  threshold = 0.7)
 }
 \arguments{
-\item{projection}{SCESet to project}
+\item{projection}{SingleCellExperiment object to project}
 
-\item{reference}{reference SCESet set}
+\item{reference}{reference SingleCellExperiment object}
 
-\item{cell_type_column}{column name in the pData slot of the reference SCESet containing the cell classification information}
+\item{cell_type_column}{column name in the \code{rowData(reference)} containing the cell classification information}
 
-\item{method}{which method to use}
+\item{method}{which method to use, \code{scmap}, \code{svm} or \code{rf}}
 
 \item{threshold}{threshold on similarity (or probability for SVM and RF)}
 }
 \value{
-Projection SCESet object with labels calculated by `scmap` stored in 
-the `scmap_labels` column of the `phenoData` slot.
+The projection object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class with labels calculated by `scmap` and stored in 
+the \code{scmap_labels} column of the \code{rowData(object)} slot.
 }
 \description{
 Projection of one dataset to another
 }
 \examples{
-library(scater)
-pd <- AnnotatedDataFrame(ann)
-sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
-sceset <- calculateQCMetrics(sceset)
+library(SingleCellExperiment)
+sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)
+# this is needed to calculate dropout rate for feature selection
+# important: normcounts have the same zeros as raw counts (fpkm)
+counts(sce) <- normcounts(sce)
+logcounts(sce) <- log2(normcounts(sce) + 1)
 # use gene names as feature symbols
-fData(sceset)$feature_symbol <- featureNames(sceset)
+rowData(sce)$feature_symbol <- rownames(sce)
+isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
 # remove features with duplicated names
-sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
-sceset <- getFeatures(sceset)
-sceset <- projectData(projection = sceset, reference = sceset)
+sce <- sce[!duplicated(rownames(sce)), ]
+sce <- getFeatures(sce)
+sce <- projectData(projection = sce, reference = sce)
 
 }

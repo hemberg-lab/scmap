@@ -136,43 +136,33 @@ random_forest <- function(train, study, ntree = 50) {
 
 #' @importFrom utils head
 #' @importFrom stats lm
-linearModel <- function(f_data, n_features) {
+#' @importFrom SingleCellExperiment logcounts isSpike
+#' @importFrom BiocGenerics counts
+linearModel <- function(object, n_features) {
+    dropouts <- rowSums(counts(object) == 0)/ncol(counts(object))*100
     # do not consider ERCC spike-ins and genes with 0 dropout rate
-    dropouts_filter <- which(f_data$pct_dropout != 0 & f_data$pct_dropout != 100 & !grepl("ERCC-", f_data$feature_symbol))
-    dropouts <- log2(f_data$pct_dropout[dropouts_filter])
-    expression <- f_data$mean_exprs[dropouts_filter]
-    feature_symbols <- f_data$feature_symbol[dropouts_filter]
+    dropouts_filter <- which(dropouts != 0 & dropouts != 100 & !isSpike(object, "ERCC"))
+    dropouts <- log2(dropouts[dropouts_filter])
+    expression <- rowSums(logcounts(object[dropouts_filter,]))/ncol(logcounts(object[dropouts_filter,]))
     
     fit <- lm(dropouts ~ expression)
-    gene_inds <- as.numeric(names(head(sort(fit$residuals, decreasing = TRUE), n_features)))
+    gene_inds <- fit$residuals
+    names(gene_inds) <- 1:length(gene_inds)
+    gene_inds <- as.numeric(names(head(sort(gene_inds, decreasing = TRUE), n_features)))
     
-    scmap_features <- rep(FALSE, nrow(f_data))
+    scmap_features <- rep(FALSE, nrow(object))
     scmap_features[dropouts_filter[gene_inds]] <- TRUE
     
-    scmap_scores <- rep(NA, nrow(f_data))
+    scmap_scores <- rep(NA, nrow(object))
     scmap_scores[dropouts_filter] <- fit$residuals
     
     d <- as.data.frame(cbind(expression, dropouts))
-    d$Gene <- f_data$feature_symbol[dropouts_filter]
+    d$Gene <- rownames(object)[dropouts_filter]
     d$Features <- "Other"
     d$Features[gene_inds] <- "Selected"
     d$Features <- factor(d$Features, levels = c("Selected", "Other"))
     
     return(list(scmap_features = scmap_features, scmap_scores = scmap_scores, for_plotting = d, fit = fit))
-}
-
-#' Plot feature selection plot
-#' 
-#' @param object an object of \code{\link[scater]{SCESet}} class
-#' @param n_features number of features to select
-#' 
-#' @return a ggplot object to plot the feature selection plot
-#' 
-#' @importFrom Biobase fData
-plotFeatures <- function(object, n_features = 500) {
-    f_data <- fData(object)
-    tmp <- linearModel(f_data, n_features)
-    return(ggplot_features(tmp$for_plotting, tmp$fit))
 }
 
 #' @importFrom ggplot2 ggplot aes geom_point scale_colour_manual labs geom_abline theme_classic
@@ -193,56 +183,56 @@ prepareData <- function(reference, dat) {
     return(list(reference = reference, dat = dat))
 }
 
-#' @importFrom Biobase fData fData<- pData pData<- AnnotatedDataFrame
-#' @importFrom scater get_exprs newSCESet calculateQCMetrics
-mergeData <- function(object_reference, object_to_map) {
-    if (!("SCESet" %in% is(object_reference)) | !("SCESet" %in% is(object_to_map))) {
-        stop("Your arguments are not of `SCESet` class!")
-    }
-    features_reference <- fData(object_reference)$feature_symbol
-    features_to_map <- fData(object_to_map)$feature_symbol
-    common_features <- intersect(features_reference, features_to_map)
-    common_features <- sort(common_features)
-    
-    dat_reference <- get_exprs(object_reference, "exprs")
-    rownames(dat_reference) <- fData(object_reference)$feature_symbol
-    dat_reference <- dat_reference[rownames(dat_reference) %in% common_features, ]
-    dat_reference <- dat_reference[order(rownames(dat_reference)), ]
-    
-    dat_to_map <- get_exprs(object_to_map, "exprs")
-    rownames(dat_to_map) <- fData(object_to_map)$feature_symbol
-    dat_to_map <- dat_to_map[rownames(dat_to_map) %in% common_features, ]
-    dat_to_map <- dat_to_map[order(rownames(dat_to_map)), ]
-    
-    res <- cbind(dat_reference, dat_to_map)
-    colnames(res) <- 1:ncol(res)
-    
-    res_sceset <- newSCESet(exprsData = res, logExprsOffset = 1)
-    
-    if (is.null(pData(object_reference)$scmap_labs)) {
-        ref_cell_type <- as.character(pData(object_reference)$cell_type1)
-    } else {
-        ref_cell_type <- as.character(pData(object_reference)$scmap_labs)
-    }
-    
-    if (is.null(pData(object_to_map)$scmap_labs)) {
-        map_cell_type <- as.character(pData(object_to_map)$cell_type1)
-    } else {
-        map_cell_type <- as.character(pData(object_to_map)$scmap_labs)
-    }
-    
-    cell_type1 <- c(ref_cell_type, map_cell_type)
-    
-    p_data <- pData(res_sceset)
-    p_data <- cbind(p_data, cell_type1)
-    pData(res_sceset) <- AnnotatedDataFrame(p_data)
-    
-    f_data <- fData(res_sceset)
-    f_data$feature_symbol <- rownames(res)
-    fData(res_sceset) <- AnnotatedDataFrame(f_data)
-    
-    res_sceset <- calculateQCMetrics(res_sceset)
-    
-    return(res_sceset)
-}
-
+#' #' @importFrom Biobase fData fData<- pData pData<- AnnotatedDataFrame
+#' #' @importFrom scater exprs newSCESet calculateQCMetrics
+#' mergeData <- function(object_reference, object_to_map) {
+#'     if (!("SCESet" %in% is(object_reference)) | !("SCESet" %in% is(object_to_map))) {
+#'         stop("Your arguments are not of `SCESet` class!")
+#'     }
+#'     features_reference <- fData(object_reference)$feature_symbol
+#'     features_to_map <- fData(object_to_map)$feature_symbol
+#'     common_features <- intersect(features_reference, features_to_map)
+#'     common_features <- sort(common_features)
+#'     
+#'     dat_reference <- exprs(object_reference)
+#'     rownames(dat_reference) <- fData(object_reference)$feature_symbol
+#'     dat_reference <- dat_reference[rownames(dat_reference) %in% common_features, ]
+#'     dat_reference <- dat_reference[order(rownames(dat_reference)), ]
+#'     
+#'     dat_to_map <- exprs(object_to_map)
+#'     rownames(dat_to_map) <- fData(object_to_map)$feature_symbol
+#'     dat_to_map <- dat_to_map[rownames(dat_to_map) %in% common_features, ]
+#'     dat_to_map <- dat_to_map[order(rownames(dat_to_map)), ]
+#'     
+#'     res <- cbind(dat_reference, dat_to_map)
+#'     colnames(res) <- 1:ncol(res)
+#'     
+#'     res_sceset <- newSCESet(exprsData = res, logExprsOffset = 1)
+#'     
+#'     if (is.null(pData(object_reference)$scmap_labs)) {
+#'         ref_cell_type <- as.character(pData(object_reference)$cell_type1)
+#'     } else {
+#'         ref_cell_type <- as.character(pData(object_reference)$scmap_labs)
+#'     }
+#'     
+#'     if (is.null(pData(object_to_map)$scmap_labs)) {
+#'         map_cell_type <- as.character(pData(object_to_map)$cell_type1)
+#'     } else {
+#'         map_cell_type <- as.character(pData(object_to_map)$scmap_labs)
+#'     }
+#'     
+#'     cell_type1 <- c(ref_cell_type, map_cell_type)
+#'     
+#'     p_data <- pData(res_sceset)
+#'     p_data <- cbind(p_data, cell_type1)
+#'     pData(res_sceset) <- AnnotatedDataFrame(p_data)
+#'     
+#'     f_data <- fData(res_sceset)
+#'     f_data$feature_symbol <- rownames(res)
+#'     fData(res_sceset) <- AnnotatedDataFrame(f_data)
+#'     
+#'     res_sceset <- calculateQCMetrics(res_sceset)
+#'     
+#'     return(res_sceset)
+#' }
+#' 

@@ -1,4 +1,4 @@
-#' Select the most informative features (genes/transcripts) for projection
+#' Find the most informative features (genes/transcripts) for projection
 #'
 #' This is a modification of the M3Drop method. Instead of fitting a 
 #' Michaelis-Menten model to the log expression-dropout relation, we fit a 
@@ -6,28 +6,28 @@
 #' log(dropout) distribution. After fitting a linear model important features are
 #'  selected as the top N residuals of the linear model.
 #' 
-#' Please note that \code{object@featureData@data$feature_symbol} column must be 
+#' Please note that \code{feature_symbol} column of \code{rowData(object)} must be 
 #' present in the input object and should not contain any duplicated feature names. 
 #' This column defines feature names used during projection. Feature symbols 
 #' in the reference dataset must correpond to the feature symbols
 #' in the projection dataset, otherwise the mapping will not work!
 #'
-#' @param object an object of \code{\link[scater]{SCESet}} class
+#' @param object an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class
 #' @param n_features number of the features to be selected
 #' @param suppress_plot boolean parameter, which defines whether to plot 
 #' log(expression) versus log(dropout) distribution for all genes.
 #' Selected features are highlighted with the red colour.
 #'
-#' @return an object of \code{\link[scater]{SCESet}} class with a new column in 
-#' \code{featureData} slot which is called \code{scmap_features}. It can be accessed
-#' by using \code{fData(object)$scmap_features}.
+#' @return an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class with a new column in 
+#' \code{rowData(object)} slot which is called \code{scmap_features}. It can be accessed
+#' by using \code{as.data.frame(rowData(object))$scmap_features}.
 #'
 #' @name getFeatures
 #'
-#' @importFrom Biobase fData fData<- AnnotatedDataFrame
+#' @importFrom SummarizedExperiment rowData rowData<-
 getFeatures.SCESet <- function(object, n_features, suppress_plot) {
-    if (is.null(fData(object)$feature_symbol)) {
-        stop("There is no feature_symbol column in the featureData slot! 
+    if (is.null(as.data.frame(rowData(object))$feature_symbol)) {
+        stop("There is no feature_symbol column in the rowData slot! 
                 Please create one and then run this function again. Please note
                 that feature symbols in the reference dataset must correpond 
                 to the feature symbols in the mapping dataset, otherwise the 
@@ -35,11 +35,11 @@ getFeatures.SCESet <- function(object, n_features, suppress_plot) {
         return(object)
     }
     
-    f_data <- fData(object)
-    tmp <- linearModel(f_data, n_features)
-    f_data$scmap_features <- tmp$scmap_features
-    f_data$scmap_scores <- tmp$scmap_scores
-    fData(object) <- AnnotatedDataFrame(data = f_data)
+    r_data <- as.data.frame(rowData(object))
+    tmp <- linearModel(object, n_features)
+    r_data$scmap_features <- tmp$scmap_features
+    r_data$scmap_scores <- tmp$scmap_scores
+    rowData(object) <- r_data
     
     if (!suppress_plot) {
         p <- ggplot_features(tmp$for_plotting, tmp$fit)
@@ -51,35 +51,35 @@ getFeatures.SCESet <- function(object, n_features, suppress_plot) {
 
 #' @rdname getFeatures
 #' @aliases getFeatures
-#' @importClassesFrom scater SCESet
-setMethod("getFeatures", "SCESet", getFeatures.SCESet)
+setMethod("getFeatures", "SingleCellExperiment", getFeatures.SCESet)
 
-#' Set the most important features (genes/transcripts) for mapping
+#' Set the most important features (genes/transcripts) for projection
 #' 
-#' This method set the features to be used for mapping.
+#' This method manually sets the features to be used for projection.
 #' 
-#' Please note that \code{object@featureData@data$feature_symbol} column must be 
-#' present in the input object. This column defines feature names used during mapping
-#' Feature symbols in the reference dataset must correpond to the feature symbols
-#' in the mapping dataset, otherwise the mapping will not work!
+#' Please note that \code{feature_symbol} column of \code{rowData(object)} must be 
+#' present in the input object and should not contain any duplicated feature names. 
+#' This column defines feature names used during projection. Feature symbols 
+#' in the reference dataset must correpond to the feature symbols
+#' in the projection dataset, otherwise the mapping will not work!
 #'
-#' @param object an object of \code{\link[scater]{SCESet}} class
+#' @param object an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class
 #' @param features a character vector of feature names
 #' 
-#' @return an object of \code{\link[scater]{SCESet}} class with a new column in 
-#' \code{featureData} slot which is called \code{scmap_features}. It can be accessible
-#' either by \code{fData(object)$scmap_features} or by \code{object@featureData@data$scmap_features}
+#' @return an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class with a new column in 
+#' \code{rowData(object)} slot which is called \code{scmap_features}. It can be accessed
+#' by using \code{as.data.frame(rowData(object))$scmap_features}.
 #'
 #' @name setFeatures
 #'
-#' @importFrom Biobase fData fData<- AnnotatedDataFrame
+#' @importFrom SummarizedExperiment rowData rowData<-
 setFeatures.SCESet <- function(object, features) {
     if (is.null(features)) {
         stop("Please provide a list of feature names using 'features' argument!")
         return(object)
     }
-    if (is.null(fData(object)$feature_symbol)) {
-        stop("There is no feature_symbol column in the featureData slot! 
+    if (is.null(as.data.frame(rowData(object))$feature_symbol)) {
+        stop("There is no feature_symbol column in the rowData slot! 
                 Please create one and then run this function again. Please note
                 that feature symbols in the reference dataset must correpond 
                 to the feature symbols in the mapping dataset, otherwise the 
@@ -87,41 +87,41 @@ setFeatures.SCESet <- function(object, features) {
         return(object)
     }
     
-    inds <- match(features, fData(object)$feature_symbol)
+    inds <- match(features, as.data.frame(rowData(object))$feature_symbol)
     
     if (!all(!is.na(inds))) {
         warning("Features ", paste(features[which(is.na(inds))], collapse = ", "), " are not present in the 'SCESet' object and therefore were not set.")
     }
-    f_data <- fData(object)
-    f_data$scmap_features <- FALSE
-    f_data$scmap_features[inds[!is.na(inds)]] <- TRUE
-    fData(object) <- AnnotatedDataFrame(f_data)
+    
+    r_data <- as.data.frame(rowData(object))
+    r_data$scmap_features <- FALSE
+    r_data$scmap_features[inds[!is.na(inds)]] <- TRUE
+    rowData(object) <- r_data
     
     return(object)
 }
 
 #' @rdname setFeatures
 #' @aliases setFeatures
-#' @importClassesFrom scater SCESet
-setMethod("setFeatures", "SCESet", setFeatures.SCESet)
+setMethod("setFeatures", "SingleCellExperiment", setFeatures.SCESet)
 
 #' scmap main function
 #' 
 #' Projection of one dataset to another
 #' 
-#' @param projection SCESet to project
-#' @param reference reference SCESet set
-#' @param cell_type_column column name in the pData slot of the reference SCESet containing the cell classification information
-#' @param method which method to use
+#' @param projection SingleCellExperiment object to project
+#' @param reference reference SingleCellExperiment object
+#' @param cell_type_column column name in the \code{rowData(reference)} containing the cell classification information
+#' @param method which method to use, \code{scmap}, \code{svm} or \code{rf}
 #' @param threshold threshold on similarity (or probability for SVM and RF)
 #' 
-#' @return Projection SCESet object with labels calculated by `scmap` stored in 
-#' the `scmap_labels` column of the `phenoData` slot.
+#' @return The projection object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class with labels calculated by `scmap` and stored in 
+#' the \code{scmap_labels} column of the \code{rowData(object)} slot.
 #' 
 #' @name projectData
 #' 
-#' @importFrom Biobase fData pData pData<- AnnotatedDataFrame
-#' @importFrom scater get_exprs
+#' @importFrom SummarizedExperiment rowData colData colData<-
+#' @importFrom S4Vectors DataFrame
 #' @importFrom proxy simil
 #' @importFrom stats cor
 #' @importFrom matrixStats colMaxs rowMaxs
@@ -135,20 +135,20 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
         stop("Please define either a reference scater object or precomputed scmap reference using the `reference` parameter!")
         return(projection)
     } else {
-        if ("SCESet" %in% is(reference)) {
-            if (is.null(fData(reference)$scmap_features)) {
+        if ("SingleCellExperiment" %in% is(reference)) {
+            if (is.null(as.data.frame(rowData(reference))$scmap_features)) {
                 stop("There are no features selected in the Reference dataset! Please run `getFeatures()` first!")
                 return(projection)
             }
-            if (!cell_type_column %in% colnames(pData(reference))) {
-                stop("Please define a correct class column of the reference scater object pData slot using the `cell_type_column` parameter!")
+            if (!cell_type_column %in% colnames(colData(reference))) {
+                stop("Please define a correct class column of the reference scater object colData slot using the `cell_type_column` parameter!")
                 return(projection)
             }
         } else {
             
         }
     }
-    if (!("SCESet" %in% is(reference)) & (method == "svm" | method == "rf")) {
+    if (!("SingleCellExperiment" %in% is(reference)) & (method == "svm" | method == "rf")) {
         stop("SVM/RF do not work with the precomputed reference provided for scmap. Please provide the full reference dataset.")
         return(projection)
     }
@@ -156,16 +156,16 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
     projection_local <- projection
     
     # find and select only common features, then subset both datasets
-    if ("SCESet" %in% is(reference)) {
-        projection_local <- setFeatures(projection_local, fData(reference)$feature_symbol[fData(reference)$scmap_features])
-        reference <- setFeatures(reference, fData(projection_local)$feature_symbol[fData(projection_local)$scmap_features])
-        projection_local <- projection_local[fData(projection_local)$scmap_features, ]
-        reference <- reference[fData(reference)$scmap_features, ]
+    if ("SingleCellExperiment" %in% is(reference)) {
+        projection_local <- setFeatures(projection_local, as.data.frame(rowData(reference))$feature_symbol[as.data.frame(rowData(reference))$scmap_features])
+        reference <- setFeatures(reference, as.data.frame(rowData(projection_local))$feature_symbol[as.data.frame(rowData(projection_local))$scmap_features])
+        projection_local <- projection_local[as.data.frame(rowData(projection_local))$scmap_features, ]
+        reference <- reference[as.data.frame(rowData(reference))$scmap_features, ]
     } else {
         projection_local <- setFeatures(projection_local, rownames(reference))
-        reference <- reference[rownames(reference) %in% fData(projection_local)$feature_symbol[fData(projection_local)$scmap_features], 
+        reference <- reference[rownames(reference) %in% as.data.frame(rowData(projection_local))$feature_symbol[as.data.frame(rowData(projection_local))$scmap_features], 
             , drop = FALSE]
-        projection_local <- projection_local[fData(projection_local)$scmap_features, ]
+        projection_local <- projection_local[as.data.frame(rowData(projection_local))$scmap_features, ]
     }
     
     if (is.null(reference)) {
@@ -181,13 +181,13 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
     }
     
     # get expression values of the projection dataset
-    dat <- get_exprs(projection_local, "exprs")
-    rownames(dat) <- fData(projection_local)$feature_symbol
+    dat <- logcounts(projection_local)
+    rownames(dat) <- as.data.frame(rowData(projection_local))$feature_symbol
     
     if (method == "scmap") {
         # create the reference
-        if ("SCESet" %in% is(reference)) {
-            if (is.null(pData(reference)[[cell_type_column]])) {
+        if ("SingleCellExperiment" %in% is(reference)) {
+            if (is.null(as.data.frame(colData(reference))[[cell_type_column]])) {
                 stop("Please define a correct class column of the reference scater object using the `cell_type_column` parameter!")
                 return(projection)
             }
@@ -265,9 +265,9 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
     
     if (method == "svm") {
         # create the reference
-        reference_local <- get_exprs(reference, "exprs")
-        rownames(reference_local) <- fData(reference)$feature_symbol
-        colnames(reference_local) <- pData(reference)[[cell_type_column]]
+        reference_local <- logcounts(reference)
+        rownames(reference_local) <- as.data.frame(rowData(reference))$feature_symbol
+        colnames(reference_local) <- as.data.frame(colData(reference))[[cell_type_column]]
         
         # prepare the datasets for projection
         tmp <- prepareData(reference_local, dat)
@@ -287,9 +287,9 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
     
     if (method == "rf") {
         # create the reference
-        reference_local <- get_exprs(reference, "exprs")
-        rownames(reference_local) <- fData(reference)$feature_symbol
-        colnames(reference_local) <- pData(reference)[[cell_type_column]]
+        reference_local <- logcounts(reference)
+        rownames(reference_local) <- as.data.frame(rowData(reference))$feature_symbol
+        colnames(reference_local) <- as.data.frame(colData(reference))[[cell_type_column]]
         
         # prepare the datasets for projection
         tmp <- prepareData(reference_local, dat)
@@ -306,25 +306,24 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
         labs[maxs > threshold] <- colnames(res)[max_inds][maxs > threshold]
     }
     
-    p_data <- pData(projection)
-    p_data$scmap_labs <- labs
-    p_data$scmap_siml <- maxs
-    pData(projection) <- AnnotatedDataFrame(p_data)
+    c_data <- as.data.frame(colData(projection))
+    c_data$scmap_labs <- labs
+    c_data$scmap_siml <- maxs
+    colData(projection) <- DataFrame(c_data)
     
     return(projection)
 }
 
 #' @rdname projectData
 #' @aliases projectData
-#' @importClassesFrom scater SCESet
-setMethod("projectData", "SCESet", projectData.SCESet)
+setMethod("projectData", "SingleCellExperiment", projectData.SCESet)
 
 #' Create a precomputed Reference
 #' 
 #' Calculates centroids of each cell type and merge them into a single table.
 #'
-#' @param reference reference SCESet set
-#' @param cell_type_column column name in the pData slot of the reference SCESet 
+#' @param reference reference SingleCellExperiment object
+#' @param cell_type_column column name in the pData slot of the reference SingleCellExperiment object 
 #' containing the cell classification information
 #' 
 #' @name createReference
@@ -332,8 +331,7 @@ setMethod("projectData", "SCESet", projectData.SCESet)
 #' @return a `data.frame` containing calculated centroids of the cell types of
 #' the Reference dataset
 #'
-#' @importFrom Biobase fData pData
-#' @importFrom scater get_exprs
+#' @importFrom SummarizedExperiment rowData colData
 #' @importFrom dplyr group_by summarise %>%
 #' @importFrom reshape2 melt dcast
 #' @importFrom stats median
@@ -342,9 +340,9 @@ createReference.SCESet <- function(reference, cell_type_column) {
         stop("Please define a reference scater object using the `reference` parameter!")
     }
     gene <- cell_class <- exprs <- NULL
-    reference_local <- get_exprs(reference, "exprs")
-    rownames(reference_local) <- fData(reference)$feature_symbol
-    colnames(reference_local) <- pData(reference)[[cell_type_column]]
+    reference_local <- logcounts(reference)
+    rownames(reference_local) <- as.data.frame(rowData(reference))$feature_symbol
+    colnames(reference_local) <- as.data.frame(colData(reference))[[cell_type_column]]
     
     # calculate median feature expression in every cell class of reference
     reference_local <- reshape2::melt(reference_local)
@@ -358,23 +356,21 @@ createReference.SCESet <- function(reference, cell_type_column) {
 
 #' @rdname createReference
 #' @aliases createReference
-#' @importClassesFrom scater SCESet
-setMethod("createReference", "SCESet", createReference.SCESet)
+setMethod("createReference", "SingleCellExperiment", createReference.SCESet)
 
 #' Build gene index for a dataset
 #' 
 #' Calculates a fraction of expressed cells per gene per cell type
 #'
-#' @param object object SCESet set
-#' @param cell_type_column column name in the pData slot of the object SCESet 
+#' @param object object of SingleCellExperiment class
+#' @param cell_type_column column name in the colData slot of the object SingleCellExperiment 
 #' containing the cell classification information
 #' 
 #' @name buildGeneIndex
 #'
 #' @return a `data.frame` containing calculated gene index
 #'
-#' @importFrom Biobase fData pData
-#' @importFrom scater get_exprs
+#' @importFrom SummarizedExperiment rowData colData colData<-
 #' @importFrom dplyr group_by summarise %>%
 #' @importFrom reshape2 melt dcast
 buildGeneIndex.SCESet <- function(object, cell_type_column) {
@@ -382,9 +378,9 @@ buildGeneIndex.SCESet <- function(object, cell_type_column) {
         stop("Please define a object using the `object` parameter!")
     }
     gene <- cell_class <- exprs <- NULL
-    object_local <- get_exprs(object, "exprs") > 0
-    rownames(object_local) <- fData(object)$feature_symbol
-    colnames(object_local) <- pData(object)[[cell_type_column]]
+    object_local <- logcounts(object) > 0
+    rownames(object_local) <- rowData(object)$feature_symbol
+    colnames(object_local) <- colData(object)[[cell_type_column]]
     
     # calculate median feature expression in every cell class of object
     object_local <- reshape2::melt(object_local)
@@ -398,8 +394,7 @@ buildGeneIndex.SCESet <- function(object, cell_type_column) {
 
 #' @rdname buildGeneIndex
 #' @aliases buildGeneIndex
-#' @importClassesFrom scater SCESet
-setMethod("buildGeneIndex", "SCESet", buildGeneIndex.SCESet)
+setMethod("buildGeneIndex", "SingleCellExperiment", buildGeneIndex.SCESet)
 
 #' Find a cell type associated with a given gene list
 #' 

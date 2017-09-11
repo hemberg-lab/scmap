@@ -5,7 +5,7 @@
 \alias{buildGeneIndex}
 \alias{buildGeneIndex}
 \alias{buildGeneIndex.SCESet}
-\alias{buildGeneIndex,SCESet-method}
+\alias{buildGeneIndex,SingleCellExperiment-method}
 \alias{buildGeneIndex}
 \title{Build gene index for a dataset}
 \usage{
@@ -13,13 +13,13 @@ buildGeneIndex(object = NULL, cell_type_column = "cell_type1")
 
 buildGeneIndex.SCESet(object, cell_type_column)
 
-\S4method{buildGeneIndex}{SCESet}(object = NULL,
+\S4method{buildGeneIndex}{SingleCellExperiment}(object = NULL,
   cell_type_column = "cell_type1")
 }
 \arguments{
-\item{object}{object SCESet set}
+\item{object}{object of SingleCellExperiment class}
 
-\item{cell_type_column}{column name in the pData slot of the object SCESet 
+\item{cell_type_column}{column name in the colData slot of the object SingleCellExperiment 
 containing the cell classification information}
 }
 \value{
@@ -29,14 +29,17 @@ a `data.frame` containing calculated gene index
 Calculates a fraction of expressed cells per gene per cell type
 }
 \examples{
-library(scater)
-pd <- AnnotatedDataFrame(ann)
-sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
-sceset <- calculateQCMetrics(sceset)
+library(SingleCellExperiment)
+sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)
+# this is needed to calculate dropout rate for feature selection
+# important: normcounts have the same zeros as raw counts (fpkm)
+counts(sce) <- normcounts(sce)
+logcounts(sce) <- log2(normcounts(sce) + 1)
 # use gene names as feature symbols
-fData(sceset)$feature_symbol <- featureNames(sceset)
+rowData(sce)$feature_symbol <- rownames(sce)
+isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
 # remove features with duplicated names
-sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
-gene_index <- buildGeneIndex(sceset)
+sce <- sce[!duplicated(rownames(sce)), ]
+gene_index <- buildGeneIndex(sce)
 
 }

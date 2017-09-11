@@ -5,44 +5,48 @@
 \alias{setFeatures}
 \alias{setFeatures}
 \alias{setFeatures.SCESet}
-\alias{setFeatures,SCESet-method}
+\alias{setFeatures,SingleCellExperiment-method}
 \alias{setFeatures}
-\title{Set the most important features (genes/transcripts) for mapping}
+\title{Set the most important features (genes/transcripts) for projection}
 \usage{
 setFeatures(object, features = NULL)
 
 setFeatures.SCESet(object, features)
 
-\S4method{setFeatures}{SCESet}(object, features = NULL)
+\S4method{setFeatures}{SingleCellExperiment}(object, features = NULL)
 }
 \arguments{
-\item{object}{an object of \code{\link[scater]{SCESet}} class}
+\item{object}{an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class}
 
 \item{features}{a character vector of feature names}
 }
 \value{
-an object of \code{\link[scater]{SCESet}} class with a new column in 
-\code{featureData} slot which is called \code{scmap_features}. It can be accessible
-either by \code{fData(object)$scmap_features} or by \code{object@featureData@data$scmap_features}
+an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class with a new column in 
+\code{rowData(object)} slot which is called \code{scmap_features}. It can be accessed
+by using \code{as.data.frame(rowData(object))$scmap_features}.
 }
 \description{
-This method set the features to be used for mapping.
+This method manually sets the features to be used for projection.
 }
 \details{
-Please note that \code{object@featureData@data$feature_symbol} column must be 
-present in the input object. This column defines feature names used during mapping
-Feature symbols in the reference dataset must correpond to the feature symbols
-in the mapping dataset, otherwise the mapping will not work!
+Please note that \code{feature_symbol} column of \code{rowData(object)} must be 
+present in the input object and should not contain any duplicated feature names. 
+This column defines feature names used during projection. Feature symbols 
+in the reference dataset must correpond to the feature symbols
+in the projection dataset, otherwise the mapping will not work!
 }
 \examples{
-library(scater)
-pd <- AnnotatedDataFrame(ann)
-sceset <- newSCESet(fpkmData = yan, phenoData = pd, logExprsOffset = 1)
-sceset <- calculateQCMetrics(sceset)
+library(SingleCellExperiment)
+sce <- SingleCellExperiment(assays = list(normcounts = as.matrix(yan)), colData = ann)
+# this is needed to calculate dropout rate for feature selection
+# important: normcounts have the same zeros as raw counts (fpkm)
+counts(sce) <- normcounts(sce)
+logcounts(sce) <- log2(normcounts(sce) + 1)
 # use gene names as feature symbols
-fData(sceset)$feature_symbol <- featureNames(sceset)
+rowData(sce)$feature_symbol <- rownames(sce)
+isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
 # remove features with duplicated names
-sceset <- sceset[!duplicated(fData(sceset)$feature_symbol), ]
-sceset <- setFeatures(sceset, c('MMP2', 'ZHX3'))
+sce <- sce[!duplicated(rownames(sce)), ]
+sce <- setFeatures(sce, c('MMP2', 'ZHX3'))
 
 }
