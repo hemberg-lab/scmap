@@ -86,7 +86,7 @@ colData(sce)
 ```
 
 Clearly the projection is almost perfect. With `scmap` one can also plot a [Sankey diagram](https://developers.google.com/chart/interactive/docs/gallery/sankey) (however, `cell_type1` columns have to be provided in the `colData` slots of both the reference and the projection datasets):
-```{r results='asis', tidy=FALSE}
+```{r results='asis', tidy=FALSE, eval=FALSE}
 plot(getSankey(colData(sce)$cell_type1, colData(sce)$scmap_labs))
 ```
 
