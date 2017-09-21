@@ -109,18 +109,6 @@ sce <- projectData(projection = sce, reference = reference)
 colData(sce)
 ```
 
-# Find cell types associated with a given list of genes
-
-If one has a list of genes that you would like to check against you dataset, i.e.
-find the cell types that most likely represent your genes (highest expression), then `scmap` allows one to do that by first creating a gene index and then very quickly searching the index:
-```{r}
-geneIndex <- buildGeneIndex(sce)
-p_values <- -log10(queryGeneList(geneIndex, c("SOX6", "SNAI3")))
-barplot(p_values, ylab = "-log10(pval)", las = 2)
-```
-
-The calculation above shows that a list of genes containing `SOX6` and `SNAI3` is specific for the `zygote` cell type.
-
 # sessionInfo()
 
 ```{r echo=FALSE}
