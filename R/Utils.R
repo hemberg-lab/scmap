@@ -139,9 +139,20 @@ random_forest <- function(train, study, ntree = 50) {
 #' @importFrom SingleCellExperiment logcounts isSpike
 #' @importFrom BiocGenerics counts
 linearModel <- function(object, n_features) {
-    dropouts <- rowSums(counts(object) == 0)/ncol(counts(object))*100
-    # do not consider ERCC spike-ins and genes with 0 dropout rate
-    dropouts_filter <- which(dropouts != 0 & dropouts != 100 & !isSpike(object, "ERCC"))
+    if (!"counts" %in% assayNames(object)) {
+        warning("Your object does not contain counts() slot. Dropouts were calculated using logcounts() slot...")
+        dropouts <- rowSums(logcounts(object) == 0)/ncol(logcounts(object))*100
+    } else {
+        dropouts <- rowSums(counts(object) == 0)/ncol(counts(object))*100
+    }
+    # do not consider spikes and genes with 0 and 100 dropout rate
+    dropouts_filter <- dropouts != 0 & dropouts != 100
+    if(!is.null(isSpike(object))) {
+        for(spikes in spikeNames(object)) {
+            dropouts_filter <- as.logical(dropouts_filter * !isSpike(object, spikes))
+        }
+    }
+    dropouts_filter <- which(dropouts_filter)
     dropouts <- log2(dropouts[dropouts_filter])
     expression <- rowSums(logcounts(object[dropouts_filter,]))/ncol(logcounts(object[dropouts_filter,]))
     
