@@ -104,7 +104,7 @@ Rcpp::List NNfirst(const int& w,
       ind = clus_ind(r);
       
       for (m = 0; m < M; m++) {
-        celldist += dists(m, subclusters(m,ind-1));
+        celldist += dists(m, subclusters(m,ind-1)-1);
       }
       // only divide through by the Eucl. norm of the query if it is non-zero
       if (SqNorm(n) > 0) {
