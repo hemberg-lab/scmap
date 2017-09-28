@@ -33,8 +33,10 @@ Imports:
     methods,
     stats,
     e1071,
-    randomForest
+    randomForest,
+    Rcpp (>= 0.12.12)
 Depends: R(>= 3.4)
+LinkingTo: Rcpp, RcppArmadillo
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.0.1
