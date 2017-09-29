@@ -7,7 +7,7 @@
 normalise(dat)
 }
 \arguments{
-\item{A}{numerical matrix}
+\item{dat}{A numerical matrix}
 }
 \description{
 Normalises each column of a matrix

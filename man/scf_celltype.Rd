@@ -12,9 +12,14 @@ scf_celltype(ref, query_dat, ref_index = NULL, w = 3, thres = 0.5)
 \item{query_dat}{an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class}
 
 \item{ref_index}{the output of scf_index with ref as its input.}
+
+\item{w}{an integer specifying the number of nearest neighbours to find}
+
+\item{thres}{the threshold which the maximum similarity between the query and a reference cell must exceed
+for the cell-type to be assigned}
 }
 \value{
-the predicted cell-type labels of the query dataset
+The query dataset with the predicted labels attached to colData(query_dat)$cell_type1
 }
 \description{
 Each cell in the query dataset is assigned a cell-type if the similarity between its

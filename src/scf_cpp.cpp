@@ -35,7 +35,7 @@ arma::mat subdistsmult(const Rcpp::List& subcentroids,
 
 //' Normalises each column of a matrix
 //' 
-//' @param A numerical matrix
+//' @param dat A numerical matrix
 // [[Rcpp::export]]
 arma::mat normalise(const arma::mat& dat) {
   arma::mat res = arma::normalise(dat);
@@ -212,7 +212,7 @@ Rcpp::List NNmult(const int& w,
 //' The Euclidean Squared Norm of each column of a matrix is computed and the whole result is returned as a vector.
 //' Used as part of the approx. calculations of the cosine similarity between the query and the reference.
 //' 
-//' @param A numerical matrix
+//' @param dat A numerical matrix
 // [[Rcpp::export]]
 Rcpp::NumericVector EuclSqNorm(const arma::mat& dat) {
   int cols = dat.n_cols;

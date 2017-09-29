@@ -8,7 +8,7 @@ Used as part of the approx. calculations of the cosine similarity between the qu
 EuclSqNorm(dat)
 }
 \arguments{
-\item{A}{numerical matrix}
+\item{dat}{A numerical matrix}
 }
 \description{
 The Euclidean Squared Norm of each column of a matrix is computed and the whole result is returned as a vector.

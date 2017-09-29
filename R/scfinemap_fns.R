@@ -18,6 +18,7 @@
 #' 
 #' @importFrom SummarizedExperiment rowData rowData<-
 #' @importFrom SingleCellExperiment logcounts logcounts<-
+#' @importFrom stats kmeans
 #' 
 #' @useDynLib scmap
 #' @importFrom Rcpp sourceCpp
@@ -187,8 +188,11 @@ mult_search <- function(list_dat, query_dat, w) {
 #' @param ref an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class
 #' @param query_dat an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class
 #' @param ref_index the output of scf_index with ref as its input. 
+#' @param w an integer specifying the number of nearest neighbours to find
+#' @param thres the threshold which the maximum similarity between the query and a reference cell must exceed
+#' for the cell-type to be assigned
 #' 
-#' @return the predicted cell-type labels of the query dataset
+#' @return The query dataset with the predicted labels attached to colData(query_dat)$cell_type1
 #' 
 #' @name scf_celltype
 #' 
@@ -224,5 +228,6 @@ scf_celltype <- function(ref, query_dat, ref_index = NULL, w=3, thres = 0.5) {
       labs_new[i] <- "unassigned"
     }
   }
-  return(labs_new)
+  colData(query_dat)$cell_type1 <- labs_new
+  return(query_dat)
 }
