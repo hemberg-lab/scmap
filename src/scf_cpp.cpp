@@ -3,6 +3,16 @@
 
 using namespace Rcpp;
 
+//' Computes the dot product between the subcentroids from the indexed reference and the subvectors of an element of the query dataset. 
+//' Returns an M by k matrix. Used as an intermediate step (in NNfirst and NNmult) for calculating
+//' an approximation of the cosine similarity between the query and the reference. 
+//' 
+//' @param subcentroids A list of matrices containing the subcentroids of each chunk.
+//' @param query_chunks A list of matrices containing the chunks of the query dataset after it has been split
+//' according to the product quantization method
+//' @param M An integer specifying the number of chunks
+//' @param k An integer specifying the number of subcentroids per chunk
+//' @param cellnum An integer specifying the column of the query dataset we wish to consider
 // [[Rcpp::export]]
 arma::mat subdistsmult(const Rcpp::List& subcentroids,
                        const Rcpp::List& query_chunks,
@@ -18,61 +28,34 @@ arma::mat subdistsmult(const Rcpp::List& subcentroids,
     arma::mat subcm = subcentroids[m];
     for (j = 0; j < k; j++) {
       dists(m,j) = arma::dot(subqm, subcm.col(j));
-      //dists(m,j) = arma::as_scalar(subqm.t() *subcm.col(j));
     }
   }
   return dists;
 }
 
-// [[Rcpp::export]]
-Rcpp::List nearcs(const int& w,
-                 const int& M,
-                 const arma::Col<int> clus_ind, 
-                 const arma::mat & subclusters,
-                 const arma::mat& dists,
-                 const int& len) {
-  arma::vec nn(w); 
-  Rcpp::NumericVector NN(w);
-  int ind, r, m, min_index;
-  double celldist;
-  for (r = 0; r < len; r++) {
-    celldist = 0;
-    ind = clus_ind(r);
-    
-    for (m = 0; m < M; m++) {
-      celldist += dists(m, subclusters(m,ind-1));
-    }
-    
-    // double total_mag =0;
-    // for (m = 0; m < (M+1); m++) {
-    //   total_mag += mags(m,subclusters(m,ind-1));
-    // }
-    // celldist = celldist/pow(total_mag, 0.5);
-    if (r < w) {
-      NN(r) = celldist;
-      nn(r) = ind;
-    } else {
-      //double mn = Rcpp::min(NN);
-      min_index = Rcpp::which_min(NN);
-      if (celldist > NN(min_index)) {
-        nn(min_index) = ind;
-        NN(min_index) = celldist;
-      }
-      
-    }
-  }
-  return List::create(_["nn"] = nn,
-                      _["distances"]   = NN);
-}
-
-
+//' Normalises each column of a matrix
+//' 
+//' @param A numerical matrix
 // [[Rcpp::export]]
 arma::mat normalise(const arma::mat& dat) {
   arma::mat res = arma::normalise(dat);
   return res;
 }
 
-
+//' Main nearest neighbour calculation function. Used on the first reference dataset.
+//' Returns a list of three objects:
+//' 1) the cell indices of the w nearest neighbours
+//' 2) the corresponding approx. cosine similarities
+//' 3) the corresponding datasets they came from (in this case, the first dataset only)
+//' 
+//' @param w An integer specifying the number of nearest neighbours
+//' @param k An integer specifying the number of subcentroids for each product quantization chunk
+//' @param subcentroids A list of matrices containing the subcentroids of each chunk.
+//' @param subclusters A matrix containing the subcentroid assignments of each reference cell. See scf_index.
+//' @param query_chunks A list of matrices containing the chunks of the query dataset after it has been split
+//' according to the product quantization method
+//' @param M An integer specifying the number of chunks
+//' @param SqNorm A numerical vector containing the Euclidean Squared Norm of each query cell.
 // [[Rcpp::export]]
 Rcpp::List NNfirst(const int& w,
                 const int& k,
@@ -82,41 +65,46 @@ Rcpp::List NNfirst(const int& w,
                 const int& M,
                 const arma::vec& SqNorm) {
   
+  // Initialization of variables
   arma::mat dists;
-  //arma::vec nn;
   arma::Col<double> query;
-  int cols = subclusters.n_cols;
+  int cols = subclusters.n_cols; //number of cells in the reference
   int n;
   arma::mat queryc = query_chunks[0];
-  int numcells = queryc.n_cols;
+  int numcells = queryc.n_cols; //number of cells in the query dataset
   arma::mat best_cells(w, numcells);
   Rcpp::NumericMatrix best_distances(w, numcells);
   arma::mat subqueries;
   arma::vec nn(w); 
   double celldist;
   Rcpp::NumericVector NN(w);
-  int ind, r, m, min_index;
-  arma::Col<int> clus_ind = arma::linspace<arma::Col<int> >(1, cols, cols);
+  int r, m, min_index;
+  
   for (n = 0; n < numcells; n++) {
-    dists = subdistsmult(subcentroids, query_chunks, M, k, n);
+    dists = subdistsmult(subcentroids, query_chunks, M, k, n); // see description of subdistsmult above
     for (r = 0; r < cols; r++) {
       celldist = 0;
-      ind = clus_ind(r);
       
+      // add up corresponding dot products from each chunk
       for (m = 0; m < M; m++) {
-        celldist += dists(m, subclusters(m,ind-1)-1);
+        celldist += dists(m, subclusters(m,r)-1);
       }
+      
+      // divide the sum by the Euclidean norms of both the query and the concatenated subcentroids (sqrt(M) due to normalization)
       // only divide through by the Eucl. norm of the query if it is non-zero
       if (SqNorm(n) > 0) {
         celldist = celldist/(sqrt(M)*sqrt(SqNorm(n)));
       }
+      
+      // start by assigning the first w reference cells as nearest neighbours
+      // subsequently, update the nearest neighbours as we search through the rest of the reference
       if (r < w) {
         NN(r) = celldist;
-        nn(r) = ind;
+        nn(r) = r+1; // "+1" required due to the difference in indexing in R and C++
       } else {
         min_index = Rcpp::which_min(NN);
         if (celldist > NN(min_index)) {
-          nn(min_index) = ind;
+          nn(min_index) = r+1;
           NN(min_index) = celldist;
         }
         
@@ -125,12 +113,32 @@ Rcpp::List NNfirst(const int& w,
     best_cells.col(n) = nn;
     best_distances.column(n) = NN;
   }
+  
+  // since this is the first reference dataset, the dataset indices are all set to 1, indicating
+  // that all the nearest neighbours came from the first reference dataset
   arma::mat dataset_inds = arma::ones(w, numcells);
   return List::create(_["cells"] = best_cells,
                       _["distances"]   = best_distances,
                       _["dataset_inds"] = dataset_inds);
 }
 
+//' Performs the same operations as NNfirst, but for subsequent reference datasets.
+//' The current best cells and distances are given as inputs and are updated as the reference is searched.
+//' 
+//' @param w An integer specifying the number of nearest neighbours
+//' @param k An integer specifying the number of subcentroids for each product quantization chunk
+//' @param subcentroids A list of matrices containing the subcentroids of each chunk.
+//' @param subclusters A matrix containing the subcentroid assignments of each reference cell. See scf_index.
+//' @param query_chunks A list of matrices containing the chunks of the query dataset after it has been split
+//' according to the product quantization method
+//' @param M An integer specifying the number of chunks
+//' @param SqNorm A numerical vector containing the Euclidean Squared Norm of each query cell.
+//' @param best_cells_so_far A integer matrix containing the cell indices of the nearest neighbours so far.
+//' @param best_distances_so_far A numerical matrix containing the approx. cosine similarities of the 
+//' nearest neighbours so far.
+//' @param dataset_inds An integer matrix containing the dataset indices of the nearest neighbours so far.
+//' @param dat_num The reference dataset number in consideration (i.e. the position of the reference dataset
+//' in the list of references).
 // [[Rcpp::export]]
 Rcpp::List NNmult(const int& w,
                   const int& k,
@@ -145,7 +153,6 @@ Rcpp::List NNmult(const int& w,
                   const int& dat_num) {
   
   arma::mat dists;
-  //arma::vec nn;
   arma::Col<double> query;
   int cols = subclusters.n_cols;
   int n;
@@ -178,7 +185,7 @@ Rcpp::List NNmult(const int& w,
         ind = clus_ind(r);
         
         for (m = 0; m < M; m++) {
-          celldist += dists(m, subclusters(m,ind-1));
+          celldist += dists(m, subclusters(m,ind-1)-1);
         }
         // only divide through by the Eucl. norm of the query if it is non-zero
         if (SqNorm(n) > 0) {
@@ -202,6 +209,10 @@ Rcpp::List NNmult(const int& w,
                       _["dataset_inds"] = dataset_inds);
 }
 
+//' The Euclidean Squared Norm of each column of a matrix is computed and the whole result is returned as a vector.
+//' Used as part of the approx. calculations of the cosine similarity between the query and the reference.
+//' 
+//' @param A numerical matrix
 // [[Rcpp::export]]
 Rcpp::NumericVector EuclSqNorm(const arma::mat& dat) {
   int cols = dat.n_cols;

@@ -121,7 +121,7 @@ mult_search <- function(list_dat, query_dat, w) {
       SqNorm <- SqNorm + EuclSqNorm(query_chunks[[m]])
     }
   }
-  #print("Feature preparation done!")
+  # compute the w nearest neighbours and their similarities to the queries
   res = NNfirst(w, k, subcentroids, subclusters, query_chunks, M, SqNorm)
   
   # evaluate the other datasets in the reference list
@@ -156,6 +156,7 @@ mult_search <- function(list_dat, query_dat, w) {
           SqNorm <- SqNorm + EuclSqNorm(query_chunks[[m]])
         }
       }
+      # takes the current best cells and distances as input arguments and updates them
       res = NNmult(w, k, subcentroids, subclusters, query_chunks, M, SqNorm, res$cells, res$distances, res$dataset_inds, dat_num)
     }
   }

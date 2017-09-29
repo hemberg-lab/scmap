@@ -21,22 +21,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// nearcs
-Rcpp::List nearcs(const int& w, const int& M, const arma::Col<int> clus_ind, const arma::mat& subclusters, const arma::mat& dists, const int& len);
-RcppExport SEXP _scmap_nearcs(SEXP wSEXP, SEXP MSEXP, SEXP clus_indSEXP, SEXP subclustersSEXP, SEXP distsSEXP, SEXP lenSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const int& >::type w(wSEXP);
-    Rcpp::traits::input_parameter< const int& >::type M(MSEXP);
-    Rcpp::traits::input_parameter< const arma::Col<int> >::type clus_ind(clus_indSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type subclusters(subclustersSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type dists(distsSEXP);
-    Rcpp::traits::input_parameter< const int& >::type len(lenSEXP);
-    rcpp_result_gen = Rcpp::wrap(nearcs(w, M, clus_ind, subclusters, dists, len));
-    return rcpp_result_gen;
-END_RCPP
-}
 // normalise
 arma::mat normalise(const arma::mat& dat);
 RcppExport SEXP _scmap_normalise(SEXP datSEXP) {
@@ -100,7 +84,6 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_scmap_subdistsmult", (DL_FUNC) &_scmap_subdistsmult, 5},
-    {"_scmap_nearcs", (DL_FUNC) &_scmap_nearcs, 6},
     {"_scmap_normalise", (DL_FUNC) &_scmap_normalise, 1},
     {"_scmap_NNfirst", (DL_FUNC) &_scmap_NNfirst, 7},
     {"_scmap_NNmult", (DL_FUNC) &_scmap_NNmult, 11},
