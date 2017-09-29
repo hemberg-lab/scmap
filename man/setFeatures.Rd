@@ -3,10 +3,8 @@
 \docType{methods}
 \name{setFeatures}
 \alias{setFeatures}
-\alias{setFeatures}
 \alias{setFeatures.SCESet}
 \alias{setFeatures,SingleCellExperiment-method}
-\alias{setFeatures}
 \title{Set the most important features (genes/transcripts) for projection}
 \usage{
 setFeatures(object, features = NULL)

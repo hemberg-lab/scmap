@@ -15,6 +15,12 @@
 #' 4) the value of k
 #' 
 #' @name scf_index
+#' 
+#' @importFrom SummarizedExperiment rowData rowData<-
+#' @importFrom SingleCellExperiment logcounts logcounts<-
+#' 
+#' @useDynLib scmap
+#' @importFrom Rcpp sourceCpp
 
 scf_index <- function(dat, M=100, k=NULL) {
   
@@ -84,6 +90,12 @@ scf_index <- function(dat, M=100, k=NULL) {
 #' 3) a matrix with the cosine similarities corresponding to each of the nearest neighbours
 #' 
 #' @name mult_search
+#' 
+#' @importFrom SummarizedExperiment rowData rowData<- colData colData<-
+#' @importFrom SingleCellExperiment logcounts logcounts<-
+#' 
+#' @useDynLib scmap
+#' @importFrom Rcpp sourceCpp
 
 mult_search <- function(list_dat, query_dat, w) {
   features_query <- rowData(query_dat)$feature_symbol
@@ -179,6 +191,11 @@ mult_search <- function(list_dat, query_dat, w) {
 #' @return the predicted cell-type labels of the query dataset
 #' 
 #' @name scf_celltype
+#' 
+#' @importFrom SummarizedExperiment rowData rowData<- colData colData<-
+#' 
+#' @useDynLib scmap
+#' @importFrom Rcpp sourceCpp
 scf_celltype <- function(ref, query_dat, ref_index = NULL, w=3, thres = 0.5) {
   # if the reference index is not given, then it will calculated here
   if (is.null(ref_index)) {
