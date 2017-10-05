@@ -3,10 +3,8 @@
 \docType{methods}
 \name{createReference}
 \alias{createReference}
-\alias{createReference}
 \alias{createReference.SCESet}
 \alias{createReference,SingleCellExperiment-method}
-\alias{createReference}
 \title{Create a precomputed Reference}
 \usage{
 createReference(reference = NULL, cell_type_column = "cell_type1")

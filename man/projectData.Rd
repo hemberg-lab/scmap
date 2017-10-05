@@ -3,10 +3,8 @@
 \docType{methods}
 \name{projectData}
 \alias{projectData}
-\alias{projectData}
 \alias{projectData.SCESet}
 \alias{projectData,SingleCellExperiment-method}
-\alias{projectData}
 \title{scmap main function}
 \usage{
 projectData(projection = NULL, reference = NULL,

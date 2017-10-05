@@ -3,10 +3,8 @@
 \docType{methods}
 \name{getFeatures}
 \alias{getFeatures}
-\alias{getFeatures}
 \alias{getFeatures.SCESet}
 \alias{getFeatures,SingleCellExperiment-method}
-\alias{getFeatures}
 \title{Find the most informative features (genes/transcripts) for projection}
 \usage{
 getFeatures(object, n_features = 500, suppress_plot = TRUE)
