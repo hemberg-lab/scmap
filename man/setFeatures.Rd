@@ -3,8 +3,10 @@
 \docType{methods}
 \name{setFeatures}
 \alias{setFeatures}
+\alias{setFeatures}
 \alias{setFeatures.SCESet}
 \alias{setFeatures,SingleCellExperiment-method}
+\alias{setFeatures}
 \title{Set the most important features (genes/transcripts) for projection}
 \usage{
 setFeatures(object, features = NULL)
@@ -42,7 +44,7 @@ counts(sce) <- normcounts(sce)
 logcounts(sce) <- log2(normcounts(sce) + 1)
 # use gene names as feature symbols
 rowData(sce)$feature_symbol <- rownames(sce)
-isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
+isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 # remove features with duplicated names
 sce <- sce[!duplicated(rownames(sce)), ]
 sce <- setFeatures(sce, c('MMP2', 'ZHX3'))

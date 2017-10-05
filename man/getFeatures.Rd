@@ -3,8 +3,10 @@
 \docType{methods}
 \name{getFeatures}
 \alias{getFeatures}
+\alias{getFeatures}
 \alias{getFeatures.SCESet}
 \alias{getFeatures,SingleCellExperiment-method}
+\alias{getFeatures}
 \title{Find the most informative features (genes/transcripts) for projection}
 \usage{
 getFeatures(object, n_features = 500, suppress_plot = TRUE)
@@ -51,7 +53,7 @@ counts(sce) <- normcounts(sce)
 logcounts(sce) <- log2(normcounts(sce) + 1)
 # use gene names as feature symbols
 rowData(sce)$feature_symbol <- rownames(sce)
-isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
+isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 # remove features with duplicated names
 sce <- sce[!duplicated(rownames(sce)), ]
 sce <- getFeatures(sce)

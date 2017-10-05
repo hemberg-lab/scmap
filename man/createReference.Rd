@@ -3,8 +3,10 @@
 \docType{methods}
 \name{createReference}
 \alias{createReference}
+\alias{createReference}
 \alias{createReference.SCESet}
 \alias{createReference,SingleCellExperiment-method}
+\alias{createReference}
 \title{Create a precomputed Reference}
 \usage{
 createReference(reference = NULL, cell_type_column = "cell_type1")
@@ -36,7 +38,7 @@ counts(sce) <- normcounts(sce)
 logcounts(sce) <- log2(normcounts(sce) + 1)
 # use gene names as feature symbols
 rowData(sce)$feature_symbol <- rownames(sce)
-isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
+isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 # remove features with duplicated names
 sce <- sce[!duplicated(rownames(sce)), ]
 sce <- getFeatures(sce)
