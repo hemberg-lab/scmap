@@ -159,13 +159,15 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
     if ("SingleCellExperiment" %in% is(reference)) {
         projection_local <- setFeatures(projection_local, as.data.frame(rowData(reference))$feature_symbol[as.data.frame(rowData(reference))$scmap_features])
         reference <- setFeatures(reference, as.data.frame(rowData(projection_local))$feature_symbol[as.data.frame(rowData(projection_local))$scmap_features])
-        projection_local <- projection_local[as.data.frame(rowData(projection_local))$scmap_features, ]
+        projection_local <- projection_local[as.data.frame(rowData(projection_local))$scmap_features, 
+            ]
         reference <- reference[as.data.frame(rowData(reference))$scmap_features, ]
     } else {
         projection_local <- setFeatures(projection_local, rownames(reference))
         reference <- reference[rownames(reference) %in% as.data.frame(rowData(projection_local))$feature_symbol[as.data.frame(rowData(projection_local))$scmap_features], 
             , drop = FALSE]
-        projection_local <- projection_local[as.data.frame(rowData(projection_local))$scmap_features, ]
+        projection_local <- projection_local[as.data.frame(rowData(projection_local))$scmap_features, 
+            ]
     }
     
     if (is.null(reference)) {
@@ -221,7 +223,8 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
         max_inds3 <- max.col(t(res))
         maxs3 <- colMaxs(res)
         
-        cons <- cbind(colnames(reference_local)[max_inds1], colnames(reference_local)[max_inds2], colnames(reference_local)[max_inds3])
+        cons <- cbind(colnames(reference_local)[max_inds1], colnames(reference_local)[max_inds2], 
+            colnames(reference_local)[max_inds3])
         
         maximums <- cbind(maxs1, maxs2, maxs3)
         
@@ -253,8 +256,9 @@ projectData.SCESet <- function(projection, reference, cell_type_column, method, 
             ## calculate maximum similarity in case of two agreeing similarities
             tmp1 <- matrix(apply(tmp, 2, `==`, labs[unique_labs == 2 & non_na_inds]), ncol = 3)
             inds <- t(apply(tmp1, 1, which))
-            maxs_tmp <- cbind(maximums[unique_labs == 2 & non_na_inds, , drop = FALSE][cbind(seq_along(inds[, 1]), inds[, 
-                1])], maximums[unique_labs == 2 & non_na_inds, , drop = FALSE][cbind(seq_along(inds[, 1]), inds[, 2])])
+            maxs_tmp <- cbind(maximums[unique_labs == 2 & non_na_inds, , drop = FALSE][cbind(seq_along(inds[, 
+                1]), inds[, 1])], maximums[unique_labs == 2 & non_na_inds, , drop = FALSE][cbind(seq_along(inds[, 
+                1]), inds[, 2])])
             maxs_tmp <- rowMaxs(maxs_tmp)
             maxs[unique_labs == 2 & non_na_inds] <- maxs_tmp
         }

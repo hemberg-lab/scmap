@@ -84,8 +84,8 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
         colors <- paste0("['", colors, "']")
     }
     
-    Sankey <- gvisSankey(res, from = "From", to = "To", weight = "# of cells", options = list(width = plot_width, height = plot_height, 
-        sankey = paste0("{
+    Sankey <- gvisSankey(res, from = "From", to = "To", weight = "# of cells", options = list(width = plot_width, 
+        height = plot_height, sankey = paste0("{
                 node:{
                     label:{
                         fontName:'Arial',
@@ -100,7 +100,8 @@ getSankey <- function(reference, clusters, plot_width = 400, plot_height = 600, 
             if (!is.null(colors)) {
                 paste0("link:{
                     colorMode: 'source',
-                    colors: ", colors, "
+                    colors: ", 
+                  colors, "
                 },")
             }, "iterations:0
             }")))
@@ -141,20 +142,21 @@ random_forest <- function(train, study, ntree = 50) {
 linearModel <- function(object, n_features) {
     if (!"counts" %in% assayNames(object)) {
         warning("Your object does not contain counts() slot. Dropouts were calculated using logcounts() slot...")
-        dropouts <- rowSums(logcounts(object) == 0)/ncol(logcounts(object))*100
+        dropouts <- rowSums(logcounts(object) == 0)/ncol(logcounts(object)) * 100
     } else {
-        dropouts <- rowSums(counts(object) == 0)/ncol(counts(object))*100
+        dropouts <- rowSums(counts(object) == 0)/ncol(counts(object)) * 100
     }
     # do not consider spikes and genes with 0 and 100 dropout rate
     dropouts_filter <- dropouts != 0 & dropouts != 100
-    if(!is.null(isSpike(object))) {
-        for(spikes in spikeNames(object)) {
-            dropouts_filter <- as.logical(dropouts_filter * !isSpike(object, spikes))
+    if (!is.null(isSpike(object))) {
+        for (spikes in spikeNames(object)) {
+            dropouts_filter <- as.logical(dropouts_filter * (!isSpike(object, spikes)))
         }
     }
     dropouts_filter <- which(dropouts_filter)
     dropouts <- log2(dropouts[dropouts_filter])
-    expression <- rowSums(logcounts(object[dropouts_filter,]))/ncol(logcounts(object[dropouts_filter,]))
+    expression <- rowSums(logcounts(object[dropouts_filter, ]))/ncol(logcounts(object[dropouts_filter, 
+        ]))
     
     fit <- lm(dropouts ~ expression)
     gene_inds <- fit$residuals
@@ -180,9 +182,9 @@ linearModel <- function(object, n_features) {
 ggplot_features <- function(d, fit) {
     dropouts <- Features <- NULL
     cols <- c("#d73027", "#4575b4")
-    p <- ggplot(d, aes(x = expression, y = dropouts, colour = Features)) + geom_point(size = 0.7) + scale_colour_manual(values = cols) + 
-        labs(x = "log2(Expression)", y = "log2(% of dropouts)") + geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) + 
-        theme_classic(base_size = 12)
+    p <- ggplot(d, aes(x = expression, y = dropouts, colour = Features)) + geom_point(size = 0.7) + 
+        scale_colour_manual(values = cols) + labs(x = "log2(Expression)", y = "log2(% of dropouts)") + 
+        geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) + theme_classic(base_size = 12)
     return(p)
 }
 
@@ -197,8 +199,8 @@ prepareData <- function(reference, dat) {
 #' #' @importFrom Biobase fData fData<- pData pData<- AnnotatedDataFrame
 #' #' @importFrom scater exprs newSCESet calculateQCMetrics
 #' mergeData <- function(object_reference, object_to_map) {
-#'     if (!("SCESet" %in% is(object_reference)) | !("SCESet" %in% is(object_to_map))) {
-#'         stop("Your arguments are not of `SCESet` class!")
+#'     if (!('SCESet' %in% is(object_reference)) | !('SCESet' %in% is(object_to_map))) {
+#'         stop('Your arguments are not of `SCESet` class!')
 #'     }
 #'     features_reference <- fData(object_reference)$feature_symbol
 #'     features_to_map <- fData(object_to_map)$feature_symbol

@@ -9,7 +9,7 @@
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
+#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- getFeatures(sce)
@@ -29,7 +29,7 @@ setGeneric("getFeatures", signature = "object", function(object, n_features = 50
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
+#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- setFeatures(sce, c('MMP2', 'ZHX3'))
@@ -49,14 +49,14 @@ setGeneric("setFeatures", signature = "object", function(object, features = NULL
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
+#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- getFeatures(sce)
 #' sce <- projectData(projection = sce, reference = sce)
 #' 
-setGeneric("projectData", signature = "projection", function(projection = NULL, reference = NULL, cell_type_column = "cell_type1", 
-    method = "scmap", threshold = 0.7) {
+setGeneric("projectData", signature = "projection", function(projection = NULL, reference = NULL, 
+    cell_type_column = "cell_type1", method = "scmap", threshold = 0.7) {
     standardGeneric("projectData")
 })
 
@@ -71,7 +71,7 @@ setGeneric("projectData", signature = "projection", function(projection = NULL, 
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, "ERCC") <- grepl("^ERCC-", rownames(sce))
+#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- getFeatures(sce)
