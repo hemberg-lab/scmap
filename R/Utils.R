@@ -137,7 +137,8 @@ random_forest <- function(train, study, ntree = 50) {
 
 #' @importFrom utils head
 #' @importFrom stats lm
-#' @importFrom SingleCellExperiment logcounts isSpike
+#' @importFrom SingleCellExperiment logcounts isSpike spikeNames
+#' @importFrom SummarizedExperiment assayNames
 #' @importFrom BiocGenerics counts
 linearModel <- function(object, n_features) {
     if (!"counts" %in% assayNames(object)) {
