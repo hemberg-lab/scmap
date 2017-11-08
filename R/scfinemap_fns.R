@@ -6,6 +6,7 @@
 #' Assign cluster numbers to each member of the dataset.
 #' 
 #' @param dat an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class
+#' @param n_features number of the features to be selected
 #' @param k number of clusters per group for k-means clustering
 #' @param M number of chunks into which the expr matrix is split
 #' 
@@ -23,7 +24,7 @@
 #' @useDynLib scmap
 #' @importFrom Rcpp sourceCpp
 
-scf_index <- function(dat, M = 100, k = NULL) {
+scf_index <- function(dat, n_features = 1000, M = 100, k = NULL) {
     
     # if k is unspecified, we assign it to be the sqrt of the number of cells in the dataset
     if (is.null(k)) {
@@ -31,7 +32,7 @@ scf_index <- function(dat, M = 100, k = NULL) {
     }
     
     # perform feature selection for 1000 cells
-    new <- scmap::getFeatures(dat, n_features = 1000)
+    new <- scmap::getFeatures(dat, n_features = n_features)
     indices <- which(rowData(new)$scmap_features)
     rownames(dat) <- rowData(dat)$feature_symbol
     dat <- logcounts(dat)[indices, ]
