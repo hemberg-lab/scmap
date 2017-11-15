@@ -6,7 +6,6 @@
 #' Assign cluster numbers to each member of the dataset.
 #' 
 #' @param dat an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class
-#' @param n_features number of the features to be selected
 #' @param k number of clusters per group for k-means clustering
 #' @param M number of chunks into which the expr matrix is split
 #' 
@@ -24,23 +23,28 @@
 #' @useDynLib scmap
 #' @importFrom Rcpp sourceCpp
 
-scf_index <- function(dat, n_features = 1000, M = 100, k = NULL) {
+scf_index <- function(object, M = 100, k = NULL) {
     
     # if k is unspecified, we assign it to be the sqrt of the number of cells in the dataset
     if (is.null(k)) {
-        k <- floor(sqrt(dim(dat)[2]))
+      message("Parameter k was not provided, will use k = sqrt(number_of_cells)")
+      k <- floor(sqrt(ncol(object)))
     }
-    
-    # perform feature selection for 1000 cells
-    new <- scmap::getFeatures(dat, n_features = n_features)
-    indices <- which(rowData(new)$scmap_features)
-    rownames(dat) <- rowData(dat)$feature_symbol
-    dat <- logcounts(dat)[indices, ]
-    rows <- as.integer(dim(dat)[1])
-    cols <- as.integer(dim(dat)[2])
+    if(is.null(rowData(object)$feature_symbol)) {
+      stop("Please provide unique feature names in the `feature_symbol` column of the `rowData` slot!")
+      return(NULL)
+    }
+    if(is.null(rowData(object)$scmap_features)) {
+      stop("Please select features first by running getFeatures()!")
+      return(NULL)
+    }
+    rownames(object) <- rowData(object)$feature_symbol
+    exprs_matrix <- logcounts(object)[rowData(object)$scmap_features, ]
+    rows <- nrow(exprs_matrix)
+    cols <- ncol(exprs_matrix)
     
     # normalize dataset to perform k-means by cosine similarity
-    norm_dat <- normalise(dat)
+    norm_dat <- normalise(exprs_matrix)
     chunksize <- floor(rows/M)
     
     chunks <- list()
@@ -103,7 +107,6 @@ mult_search <- function(list_dat, query_dat, w) {
     exprs_query <- logcounts(query_dat)
     num_cells <- dim(exprs_query)[2]
     rownames(exprs_query) <- rowData(query_dat)$feature_symbol
-    print(sprintf("Searching reference dataset %i...", 1))
     # evaluate first dataset on the reference list
     ref <- list_dat[[1]]
     subcentroids <- ref[[1]]

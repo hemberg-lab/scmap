@@ -4,14 +4,14 @@
 \alias{scf_index}
 \title{Create an index for a dataset to enable fast approximate nearest neighbour search}
 \usage{
-scf_index(dat, M = 100, k = NULL)
+scf_index(object, M = 100, k = NULL)
 }
 \arguments{
-\item{dat}{an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class}
-
 \item{M}{number of chunks into which the expr matrix is split}
 
 \item{k}{number of clusters per group for k-means clustering}
+
+\item{dat}{an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class}
 }
 \value{
 a list of four objects: 1) a list of matrices containing the subcentroids of each group
