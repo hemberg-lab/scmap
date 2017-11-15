@@ -38,14 +38,13 @@ scf_index <- function(object, M = 100, k = NULL) {
       stop("Please select features first by running getFeatures()!")
       return(NULL)
     }
-    rownames(object) <- rowData(object)$feature_symbol
+    features <- rowData(object)$feature_symbol
+    rownames(object) <- features
     exprs_matrix <- logcounts(object)[rowData(object)$scmap_features, ]
-    rows <- nrow(exprs_matrix)
-    cols <- ncol(exprs_matrix)
     
     # normalize dataset to perform k-means by cosine similarity
     norm_dat <- normalise(exprs_matrix)
-    chunksize <- floor(rows/M)
+    chunksize <- floor(nrow(exprs_matrix)/M)
     
     chunks <- list()
     for (i in 1:M) {
@@ -71,7 +70,7 @@ scf_index <- function(object, M = 100, k = NULL) {
     
     subcentroids <- lapply(subcentroids, normalise)
     for (m in 1:M) {
-        rownames(subcentroids[[m]]) <- rownames(dat[((m - 1) * chunksize + 1):(m * chunksize), ])
+        rownames(subcentroids[[m]]) <- features[((m - 1) * chunksize + 1):(m * chunksize)]
     }
     subclusters <- do.call(rbind, subclusters)
     l <- list()
