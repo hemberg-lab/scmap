@@ -38,9 +38,9 @@ scf_index <- function(object, M = 100, k = NULL) {
       stop("Please select features first by running getFeatures()!")
       return(NULL)
     }
-    features <- rowData(object)$feature_symbol
-    rownames(object) <- features
+    rownames(object) <- rowData(object)$feature_symbol
     exprs_matrix <- logcounts(object)[rowData(object)$scmap_features, ]
+    features <- rownames(exprs_matrix)
     
     # normalize dataset to perform k-means by cosine similarity
     norm_dat <- normalise(exprs_matrix)
