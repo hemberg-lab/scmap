@@ -4,14 +4,14 @@
 \name{setFeatures}
 \alias{setFeatures}
 \alias{setFeatures}
-\alias{setFeatures.SCESet}
+\alias{setFeatures.SingleCellExperiment}
 \alias{setFeatures,SingleCellExperiment-method}
 \alias{setFeatures}
 \title{Set the most important features (genes/transcripts) for projection}
 \usage{
 setFeatures(object, features = NULL)
 
-setFeatures.SCESet(object, features)
+setFeatures.SingleCellExperiment(object, features)
 
 \S4method{setFeatures}{SingleCellExperiment}(object, features = NULL)
 }

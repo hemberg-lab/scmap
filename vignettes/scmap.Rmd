@@ -64,16 +64,28 @@ sce
 ## Feature Selection
 Once we have a `SingleCellExperiment` object we can run `scmap`. Firstly, we need to select the most informative features from our input dataset:
 ```{r}
-sce <- getFeatures(sce, suppress_plot = FALSE)
+sce <- selectFeatures(sce, suppress_plot = FALSE)
 ```
 
 Genes highlighted with the red colour will be used in the futher analysis (projection).
+
+# Create scmap cluster index
+
+The cell type centroids can be precomputed by using the `createReference` method:
+```{r}
+sce <- indexCluster(sce)
+```
+
+One can also visualise the cell type centroids, e.g.:
+```{r , fig.height=7}
+heatmap(as.matrix(metadata(sce)$scmap_cluster_index))
+```
 
 ## Projecting
 
 We will project the `yan` dataset to itself:
 ```{r}
-sce <- projectData(projection = sce, reference = sce)
+sce <- scmapCluster(projection = sce, reference = sce)
 ```
 
 In your own analysis you can choose any two scRNASeq datasets and project them to each other. Note that the `getFeatures` functions has to be run on the reference dataset before running the `projectData` function.
@@ -90,18 +102,6 @@ Clearly the projection is almost perfect. With `scmap` one can also plot a [Sank
 plot(getSankey(colData(sce)$cell_type1, colData(sce)$scmap_labs))
 ```
 
-
-# Creating a precomputed Reference
-
-The cell type centroids can be precomputed by using the `createReference` method:
-```{r}
-reference <- createReference(sce[rowData(sce)$scmap_features, ])
-```
-
-One can also visualise the cell type centroids, e.g.:
-```{r , fig.height=7}
-heatmap(as.matrix(reference))
-```
 
 Exactly the same projection as above can be performed by providing the precomputed reference instead of the `SingleCellExperiment` object:
 ```{r}

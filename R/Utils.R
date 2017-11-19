@@ -141,11 +141,14 @@ random_forest <- function(train, study, ntree = 50) {
 #' @importFrom SummarizedExperiment assayNames
 #' @importFrom BiocGenerics counts
 linearModel <- function(object, n_features) {
+    log_count <- logcounts(object)
+    cols <- ncol(log_count)
     if (!"counts" %in% assayNames(object)) {
         warning("Your object does not contain counts() slot. Dropouts were calculated using logcounts() slot...")
-        dropouts <- rowSums(logcounts(object) == 0)/ncol(logcounts(object)) * 100
+        dropouts <- rowSums(log_count == 0)/cols * 100
     } else {
-        dropouts <- rowSums(counts(object) == 0)/ncol(counts(object)) * 100
+        count <- counts(object)
+        dropouts <- rowSums(count == 0)/cols * 100
     }
     # do not consider spikes and genes with 0 and 100 dropout rate
     dropouts_filter <- dropouts != 0 & dropouts != 100
@@ -156,8 +159,7 @@ linearModel <- function(object, n_features) {
     }
     dropouts_filter <- which(dropouts_filter)
     dropouts <- log2(dropouts[dropouts_filter])
-    expression <- rowSums(logcounts(object[dropouts_filter, ]))/ncol(logcounts(object[dropouts_filter, 
-        ]))
+    expression <- rowSums(log_count[dropouts_filter, ])/cols
     
     fit <- lm(dropouts ~ expression)
     gene_inds <- fit$residuals
@@ -187,14 +189,6 @@ ggplot_features <- function(d, fit) {
         scale_colour_manual(values = cols) + labs(x = "log2(Expression)", y = "log2(% of dropouts)") + 
         geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) + theme_classic(base_size = 12)
     return(p)
-}
-
-prepareData <- function(reference, dat) {
-    dat <- dat[order(rownames(dat)), ]
-    reference <- reference[order(rownames(reference)), , drop = FALSE]
-    reference <- reference[, colSums(reference) > 0, drop = FALSE]
-    
-    return(list(reference = reference, dat = dat))
 }
 
 #' #' @importFrom Biobase fData fData<- pData pData<- AnnotatedDataFrame
