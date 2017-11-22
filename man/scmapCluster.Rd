@@ -9,17 +9,17 @@
 \alias{scmapCluster}
 \title{scmap main function}
 \usage{
-scmapCluster(projection = NULL, reference = NULL, threshold = 0.7)
+scmapCluster(projection = NULL, index_list = NULL, threshold = 0.7)
 
-scmapCluster.SingleCellExperiment(projection, reference, threshold)
+scmapCluster.SingleCellExperiment(projection, index_list, threshold)
 
 \S4method{scmapCluster}{SingleCellExperiment}(projection = NULL,
-  reference = NULL, threshold = 0.7)
+  index_list = NULL, threshold = 0.7)
 }
 \arguments{
-\item{projection}{SingleCellExperiment object to project}
+\item{projection}{`SingleCellExperiment` object to project}
 
-\item{reference}{reference SingleCellExperiment object}
+\item{index_list}{list of index objects each coming from the output of `indexCluster`}
 
 \item{threshold}{threshold on similarity (or probability for SVM and RF)}
 }
@@ -43,6 +43,7 @@ isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 # remove features with duplicated names
 sce <- sce[!duplicated(rownames(sce)), ]
 sce <- getFeatures(sce)
-sce <- scmapCluster(projection = sce, reference = sce)
+sce <- indexCluster(sce)
+sce <- scmapCluster(sce, sce)
 
 }

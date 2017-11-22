@@ -9,19 +9,19 @@
 \alias{indexCell}
 \title{Create an index for a dataset to enable fast approximate nearest neighbour search}
 \usage{
-indexCell(reference = NULL, M = 100, k = NULL)
+indexCell(object = NULL, M = 100, k = NULL)
 
-indexCell.SingleCellExperiment(reference, M, k)
+indexCell.SingleCellExperiment(object, M, k)
 
-\S4method{indexCell}{SingleCellExperiment}(reference = NULL, M = 100,
+\S4method{indexCell}{SingleCellExperiment}(object = NULL, M = 100,
   k = NULL)
 }
 \arguments{
+\item{object}{an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class}
+
 \item{M}{number of chunks into which the expr matrix is split}
 
 \item{k}{number of clusters per group for k-means clustering}
-
-\item{dat}{an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class}
 }
 \value{
 a list of four objects: 1) a list of matrices containing the subcentroids of each group
@@ -48,6 +48,6 @@ isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 # remove features with duplicated names
 sce <- sce[!duplicated(rownames(sce)), ]
 sce <- getFeatures(sce)
-reference <- indexCell(sce[rowData(sce)$scmap_features, ])
+sce <- indexCell(sce)
 
 }

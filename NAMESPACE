@@ -3,6 +3,8 @@
 export(getSankey)
 export(indexCell)
 export(indexCluster)
+export(scmapCell)
+export(scmapCell2Cluster)
 export(scmapCluster)
 export(selectFeatures)
 export(setFeatures)

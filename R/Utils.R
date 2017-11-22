@@ -191,56 +191,76 @@ ggplot_features <- function(d, fit) {
     return(p)
 }
 
-#' #' @importFrom Biobase fData fData<- pData pData<- AnnotatedDataFrame
-#' #' @importFrom scater exprs newSCESet calculateQCMetrics
-#' mergeData <- function(object_reference, object_to_map) {
-#'     if (!('SCESet' %in% is(object_reference)) | !('SCESet' %in% is(object_to_map))) {
-#'         stop('Your arguments are not of `SCESet` class!')
-#'     }
-#'     features_reference <- fData(object_reference)$feature_symbol
-#'     features_to_map <- fData(object_to_map)$feature_symbol
-#'     common_features <- intersect(features_reference, features_to_map)
-#'     common_features <- sort(common_features)
-#'     
-#'     dat_reference <- exprs(object_reference)
-#'     rownames(dat_reference) <- fData(object_reference)$feature_symbol
-#'     dat_reference <- dat_reference[rownames(dat_reference) %in% common_features, ]
-#'     dat_reference <- dat_reference[order(rownames(dat_reference)), ]
-#'     
-#'     dat_to_map <- exprs(object_to_map)
-#'     rownames(dat_to_map) <- fData(object_to_map)$feature_symbol
-#'     dat_to_map <- dat_to_map[rownames(dat_to_map) %in% common_features, ]
-#'     dat_to_map <- dat_to_map[order(rownames(dat_to_map)), ]
-#'     
-#'     res <- cbind(dat_reference, dat_to_map)
-#'     colnames(res) <- 1:ncol(res)
-#'     
-#'     res_sceset <- newSCESet(exprsData = res, logExprsOffset = 1)
-#'     
-#'     if (is.null(pData(object_reference)$scmap_labs)) {
-#'         ref_cell_type <- as.character(pData(object_reference)$cell_type1)
-#'     } else {
-#'         ref_cell_type <- as.character(pData(object_reference)$scmap_labs)
-#'     }
-#'     
-#'     if (is.null(pData(object_to_map)$scmap_labs)) {
-#'         map_cell_type <- as.character(pData(object_to_map)$cell_type1)
-#'     } else {
-#'         map_cell_type <- as.character(pData(object_to_map)$scmap_labs)
-#'     }
-#'     
-#'     cell_type1 <- c(ref_cell_type, map_cell_type)
-#'     
-#'     p_data <- pData(res_sceset)
-#'     p_data <- cbind(p_data, cell_type1)
-#'     pData(res_sceset) <- AnnotatedDataFrame(p_data)
-#'     
-#'     f_data <- fData(res_sceset)
-#'     f_data$feature_symbol <- rownames(res)
-#'     fData(res_sceset) <- AnnotatedDataFrame(f_data)
-#'     
-#'     res_sceset <- calculateQCMetrics(res_sceset)
-#'     
-#'     return(res_sceset)
-#' }
-#' 
+checks_for_index <- function(object) {
+  if (is.null(object)) {
+    stop("Please provide a `SingleCellExperiment` object using the `object` parameter!")
+    return(FALSE)
+  }
+  if (!"SingleCellExperiment" %in% is(object)) {
+    stop("Input object is not of `SingleCellExperiment` class! Please provide an object of the correct class!")
+    return(FALSE)
+  }
+  if (is.null(rowData(object)$scmap_features)) {
+    stop("Features are not selected! Please run `selectFeatures()` or `setFeatures()` first!")
+    return(FALSE)
+  }
+  if (is.null(rowData(object)$feature_symbol)) {
+    stop("There is no `feature_symbol` column in the `rowData` slot of the `reference` dataset! Please write your gene/transcript names to this column!")
+    return(FALSE)
+  }
+  return(TRUE)
+}
+
+checks_for_projection <- function(projection, index_list) {
+  if (is.null(projection)) {
+    stop("Please provide a `SingleCellExperiment` object for the `projection` parameter!")
+    return(FALSE)
+  }
+  if (!"SingleCellExperiment" %in% is(projection)) {
+    stop("`projection` dataset has to be of the `SingleCellExperiment` class!")
+    return(FALSE)
+  }
+  if (is.null(rowData(projection)$feature_symbol)) {
+    stop("There is no `feature_symbol` column in the `rowData` slot of the `projection` dataset! Please write your gene/transcript names to this column!")
+    return(FALSE)
+  }
+  if (is.null(index_list)) {
+    stop("Please provide a list of precomputed scmap indexes as the `reference` parameter!")
+    return(FALSE)
+  }
+  if (!"list" %in% is(index_list)) {
+    stop("Please provide a list of precomputed scmap indexes as the `reference` parameter!")
+    return(FALSE)
+  }
+  return(TRUE)
+}
+
+dists_subcentroids <- function(proj_exprs, subcentroids) {
+  features_query <- rownames(proj_exprs)
+  num_cells <- ncol(proj_exprs)
+  SqNorm <- ncol(proj_exprs)
+  query_chunks <- list()
+  for (m in seq_len(length(subcentroids))) {
+    subcentroids_chunk <- subcentroids[[m]]
+    features_chunk <- rownames(subcentroids_chunk)
+    common_features <- intersect(features_chunk, features_query)
+    if (length(common_features) == 0) {
+      # change to a more memory-efficient method later?
+      query_chunks[[m]] <- matrix(num_cells, 1, num_cells)
+      subcentroids[[m]] <- matrix(ncol(subcentroids_chunk), 1, ncol(subcentroids_chunk))
+    } else {
+      common_features <- sort(common_features)
+      subcentroids[[m]] <- subcentroids_chunk[rownames(subcentroids_chunk) %in% common_features, 
+                                              , drop = FALSE]
+      query_chunks[[m]] <- proj_exprs[rownames(proj_exprs) %in% common_features, , drop = FALSE]
+      if (length(common_features) > 1) {
+        subcentroids[[m]] <- subcentroids[[m]][order(rownames(subcentroids[[m]])), ]
+        query_chunks[[m]] <- query_chunks[[m]][order(rownames(query_chunks[[m]])), ]
+      }
+      # find the squared Euclidean norm of every query after selecting features
+      SqNorm <- SqNorm + EuclSqNorm(query_chunks[[m]])
+    }
+  }
+  return(list(subcentroids = subcentroids, query_chunks = query_chunks, SqNorm = SqNorm))
+}
+
