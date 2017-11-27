@@ -238,7 +238,7 @@ checks_for_projection <- function(projection, index_list) {
 dists_subcentroids <- function(proj_exprs, subcentroids) {
   features_query <- rownames(proj_exprs)
   num_cells <- ncol(proj_exprs)
-  SqNorm <- ncol(proj_exprs)
+  SqNorm <- numeric(ncol(proj_exprs))
   query_chunks <- list()
   for (m in seq_len(length(subcentroids))) {
     subcentroids_chunk <- subcentroids[[m]]

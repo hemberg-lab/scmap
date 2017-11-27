@@ -185,6 +185,15 @@ indexCell.SingleCellExperiment <- function(object, M, k) {
   if(!checks_for_index(object)) {
     return(object)
   }
+  n_features <- length(which(rowData(object)$scmap_features))
+  if (is.null(M)) {
+    message("Parameter M was not provided, will use M = n_features / 10 (if n_features <= 1000), where n_features is the number of selected features, and M = 100 otherwise.")
+    if (n_features > 1000) {
+      M <- 100
+    } else {
+      M <- n_features / 10
+    }
+  }
   # if k is unspecified, we assign it to be the sqrt of the number of cells in the dataset
   if (is.null(k)) {
     message("Parameter k was not provided, will use k = sqrt(number_of_cells)")
@@ -273,131 +282,104 @@ scmapCluster.SingleCellExperiment <- function(projection, index_list, threshold)
   if(!checks_for_projection(projection, index_list)) {
     return(projection)
   }
-  index <- index_list[[1]]
-  # find and select only common features, then subset both datasets
-  tmp <- setFeatures(projection, rownames(index))
-  index <- index[rownames(index) %in% rowData(tmp)$feature_symbol[rowData(tmp)$scmap_features], , drop = FALSE]
-  tmp <- tmp[rowData(tmp)$scmap_features, ]
-  
-  if (nrow(index) < 10) {
-    warning("There are less than ten features in common between the `reference` and `projection` datasets. Most probably they come from different organisms! Please redefine your query!")
-    return(projection)
-  }  
-  
-  # get expression values of the projection dataset
-  proj_exprs <- logcounts(tmp)
-  rownames(proj_exprs) <- rowData(tmp)$feature_symbol
-  
-  # prepare projection dataset
-  proj_exprs <- proj_exprs[order(rownames(proj_exprs)), ]
-  
-  # calculate similarities and correlations
-  tmp <- t(index)
-  res <- proxy::simil(tmp, t(proj_exprs), method = "cosine")
-  res <- matrix(res, ncol = nrow(tmp), byrow = TRUE)
-  max_inds1 <- max.col(res)
-  maxs1 <- rowMaxs(res)
-  
-  res <- cor(index, proj_exprs, method = "pearson")
-  max_inds2 <- max.col(t(res))
-  maxs2 <- colMaxs(res)
-  
-  res <- cor(index, proj_exprs, method = "spearman")
-  max_inds3 <- max.col(t(res))
-  maxs3 <- colMaxs(res)
-  
-  cons <- cbind(colnames(index)[max_inds1], colnames(index)[max_inds2], 
-                colnames(index)[max_inds3])
-  
-  maximums <- cbind(maxs1, maxs2, maxs3)
-  
-  # cells with at least one NA correlation value become unassigned
-  non_na_inds <- !is.na(max_inds1) & !is.na(max_inds2) & !is.na(max_inds3)
-  
-  # create labels
-  maxs <- rep(NA, nrow(cons))
-  labs <- rep("unassigned", nrow(cons))
-  unique_labs <- unlist(apply(cons, 1, function(x) {
-    length(unique(x))
-  }))
-  
-  ## all similarities agree
-  if (length(which(unique_labs == 1 & non_na_inds)) > 0) {
-    labs[unique_labs == 1 & non_na_inds] <- cons[unique_labs == 1 & non_na_inds, 1]
-    maxs_tmp <- rowMaxs(maximums[unique_labs == 1 & non_na_inds, , drop = FALSE])
-    maxs[unique_labs == 1 & non_na_inds] <- maxs_tmp
-  }
-  
-  ## only two similarities agree
-  if (length(which(unique_labs == 2 & non_na_inds)) > 0) {
-    tmp <- cons[unique_labs == 2 & non_na_inds, , drop = FALSE]
-    inds <- unlist(apply(tmp, 1, function(x) {
-      which(duplicated(x))
-    }))
-    labs[unique_labs == 2 & non_na_inds] <- tmp[cbind(seq_along(inds), inds)]
+  labels <- list()
+  simls <- list()
+  for (n in seq_len(length(index_list))) {
+    index <- index_list[[n]]
+    # find and select only common features, then subset both datasets
+    tmp <- setFeatures(projection, rownames(index))
+    index <- index[rownames(index) %in% rowData(tmp)$feature_symbol[rowData(tmp)$scmap_features], , drop = FALSE]
+    tmp <- tmp[rowData(tmp)$scmap_features, ]
     
-    ## calculate maximum similarity in case of two agreeing similarities
-    tmp1 <- matrix(apply(tmp, 2, `==`, labs[unique_labs == 2 & non_na_inds]), ncol = 3)
-    inds <- t(apply(tmp1, 1, which))
-    maxs_tmp <- cbind(maximums[unique_labs == 2 & non_na_inds, , drop = FALSE][cbind(seq_along(inds[, 
-                                                                                                    1]), inds[, 1])], maximums[unique_labs == 2 & non_na_inds, , drop = FALSE][cbind(seq_along(inds[, 
-                                                                                                                                                                                                    1]), inds[, 2])])
-    maxs_tmp <- rowMaxs(maxs_tmp)
-    maxs[unique_labs == 2 & non_na_inds] <- maxs_tmp
+    if (nrow(index) < 10) {
+      warning("There are less than ten features in common between the `reference` and `projection` datasets. Most probably they come from different organisms! Please redefine your query!")
+      return(projection)
+    }  
+    
+    # get expression values of the projection dataset
+    proj_exprs <- logcounts(tmp)
+    rownames(proj_exprs) <- rowData(tmp)$feature_symbol
+    
+    # prepare projection dataset
+    proj_exprs <- proj_exprs[order(rownames(proj_exprs)), ]
+    
+    # calculate similarities and correlations
+    tmp <- t(index)
+    res <- proxy::simil(tmp, t(proj_exprs), method = "cosine")
+    res <- matrix(res, ncol = nrow(tmp), byrow = TRUE)
+    max_inds1 <- max.col(res)
+    maxs1 <- rowMaxs(res)
+    
+    res <- cor(index, proj_exprs, method = "pearson")
+    max_inds2 <- max.col(t(res))
+    maxs2 <- colMaxs(res)
+    
+    res <- cor(index, proj_exprs, method = "spearman")
+    max_inds3 <- max.col(t(res))
+    maxs3 <- colMaxs(res)
+    
+    cons <- cbind(colnames(index)[max_inds1], colnames(index)[max_inds2], 
+                  colnames(index)[max_inds3])
+    
+    maximums <- cbind(maxs1, maxs2, maxs3)
+    
+    # cells with at least one NA correlation value become unassigned
+    non_na_inds <- !is.na(max_inds1) & !is.na(max_inds2) & !is.na(max_inds3)
+    
+    # create labels
+    maxs <- rep(NA, nrow(cons))
+    labs <- rep("unassigned", nrow(cons))
+    unique_labs <- unlist(apply(cons, 1, function(x) {
+      length(unique(x))
+    }))
+    
+    ## all similarities agree
+    if (length(which(unique_labs == 1 & non_na_inds)) > 0) {
+      labs[unique_labs == 1 & non_na_inds] <- cons[unique_labs == 1 & non_na_inds, 1]
+      maxs_tmp <- rowMaxs(maximums[unique_labs == 1 & non_na_inds, , drop = FALSE])
+      maxs[unique_labs == 1 & non_na_inds] <- maxs_tmp
+    }
+    
+    ## only two similarities agree
+    if (length(which(unique_labs == 2 & non_na_inds)) > 0) {
+      tmp <- cons[unique_labs == 2 & non_na_inds, , drop = FALSE]
+      inds <- unlist(apply(tmp, 1, function(x) {
+        which(duplicated(x))
+      }))
+      labs[unique_labs == 2 & non_na_inds] <- tmp[cbind(seq_along(inds), inds)]
+      
+      ## calculate maximum similarity in case of two agreeing similarities
+      tmp1 <- matrix(apply(tmp, 2, `==`, labs[unique_labs == 2 & non_na_inds]), ncol = 3)
+      inds <- t(apply(tmp1, 1, which))
+      maxs_tmp <- cbind(maximums[unique_labs == 2 & non_na_inds, , drop = FALSE][cbind(seq_along(inds[, 
+                                                                                                      1]), inds[, 1])], maximums[unique_labs == 2 & non_na_inds, , drop = FALSE][cbind(seq_along(inds[, 
+                                                                                                                                                                                                      1]), inds[, 2])])
+      maxs_tmp <- rowMaxs(maxs_tmp)
+      maxs[unique_labs == 2 & non_na_inds] <- maxs_tmp
+    }
+    
+    ## check the similarity threshold
+    labs[!is.na(maxs) & maxs < threshold] <- "unassigned"
+    labels[[n]] <- labs
+    simls[[n]] <- maxs
   }
+  names(labels) <- names(index_list)
+  names(simls) <- names(index_list)
+  unassigned_rate_order <- order(
+    unlist(
+      lapply(labels, function(x) {
+        length(x[x == "unassigned"])/length(x)
+      })
+    )
+  )
+  labels <- labels[unassigned_rate_order]
+  simls <- simls[unassigned_rate_order]
+  labels <- do.call(cbind, labels)
+  simls <- do.call(cbind, simls)
+  max_simls_inds <- apply(simls, 1, which.max)
+  cons_labels <- labels[cbind(seq_along(max_simls_inds), max_simls_inds)]
   
-  ## check the similarity threshold
-  labs[!is.na(maxs) & maxs < threshold] <- "unassigned"
-  
-  # if (method == "svm") {
-  #     # create the reference
-  #     index <- logcounts(reference)
-  #     rownames(index) <- as.data.frame(rowData(reference))$feature_symbol
-  #     colnames(index) <- as.data.frame(colData(reference))[[cluster_col]]
-  #     
-  #     # prepare the datasets for projection
-  #     tmp <- prepareData(index, dat)
-  #     index <- tmp$reference
-  #     dat <- tmp$dat
-  #     
-  #     # run support vector machine
-  #     res <- support_vector_machines(index, dat)
-  #     probs <- attr(res, "probabilities")
-  #     max_inds <- max.col(probs)
-  #     maxs <- rowMaxs(probs)
-  #     
-  #     # create labels
-  #     labs <- rep("unassigned", length(max_inds))
-  #     labs[maxs > threshold] <- colnames(probs)[max_inds][maxs > threshold]
-  # }
-  # 
-  # if (method == "rf") {
-  #     # create the reference
-  #     index <- logcounts(reference)
-  #     rownames(index) <- as.data.frame(rowData(reference))$feature_symbol
-  #     colnames(index) <- as.data.frame(colData(reference))[[cluster_col]]
-  #     
-  #     # prepare the datasets for projection
-  #     tmp <- prepareData(index, dat)
-  #     index <- tmp$reference
-  #     dat <- tmp$dat
-  #     
-  #     # run random forest
-  #     res <- random_forest(index, dat)
-  #     max_inds <- max.col(res)
-  #     maxs <- rowMaxs(res)
-  #     
-  #     # create labels
-  #     labs <- rep("unassigned", length(max_inds))
-  #     labs[maxs > threshold] <- colnames(res)[max_inds][maxs > threshold]
-  # }
-  
-  c_data <- as.data.frame(colData(projection))
-  c_data$scmap_cluster_labs <- labs
-  c_data$scmap_cluster_siml <- maxs
-  colData(projection) <- DataFrame(c_data)
-  
-  return(projection)
+  return(list(scmap_cluster_labs = labels, scmap_cluster_siml = simls, combined_labs = cons_labels))
 }
 
 #' @rdname scmapCluster
@@ -427,34 +409,26 @@ scmapCell.SingleCellExperiment <- function(projection, index_list, w) {
   if(!checks_for_projection(projection, index_list)) {
     return(projection)
   }
-  index <- index_list[[1]]
-  subcentroids <- index$subcentroids
-  subclusters <- index$subclusters
-  
-  proj_exprs <- logcounts(projection)
-  rownames(proj_exprs) <- rowData(projection)$feature_symbol
-  
-  dists <- dists_subcentroids(proj_exprs, subcentroids)
-  
-  # compute the w nearest neighbours and their similarities to the queries
-  res <- NNfirst(w, ncol(subcentroids[[1]]), dists$subcentroids, subclusters, dists$query_chunks, length(subcentroids), dists$SqNorm)
-  
-  # evaluate the other datasets in the reference list
-  if (length(index_list) > 1) {
-    for (n in seq_len(length(index_list))[-1]) {
-      index <- index_list[[n]]
-      subcentroids <- index$subcentroids
-      subclusters <- index$subclusters
-      dists <- dists_subcentroids(proj_exprs, subcentroids)
-      # takes the current best cells and distances as input arguments and updates them
-      res <- NNmult(w, ncol(subcentroids[[1]]), dists$subcentroids, subclusters, dists$query_chunks, length(subcentroids), dists$SqNorm, res$cells, res$distances, 
-                   res$dataset_inds, n)
+  res_all <- list()
+  for (n in seq_len(length(index_list))) {
+    index <- index_list[[n]]
+    subcentroids <- index$subcentroids
+    subclusters <- index$subclusters
+    
+    proj_exprs <- logcounts(projection)
+    rownames(proj_exprs) <- rowData(projection)$feature_symbol
+    
+    dists <- dists_subcentroids(proj_exprs, subcentroids)
+    
+    # compute the w nearest neighbours and their similarities to the queries
+    res <- NN(w, ncol(subcentroids[[1]]), dists$subcentroids, subclusters, dists$query_chunks, length(subcentroids), dists$SqNorm)
+    for (i in 1:2) {
+      colnames(res[[i]]) <- colnames(proj_exprs)
     }
+    res_all[[n]] <- res
   }
-  for (i in 1:3) {
-    colnames(res[[i]]) <- colnames(proj_exprs)
-  }
-  return(res)
+  names(res_all) <- names(index_list)
+  return(res_all)
 }
 
 #' @rdname scmapCell
@@ -483,22 +457,28 @@ setMethod("scmapCell", "SingleCellExperiment", scmapCell.SingleCellExperiment)
 #' @useDynLib scmap
 #' @importFrom Rcpp sourceCpp
 scmapCell2Cluster.SingleCellExperiment <- function(projection, scmapCell_results, cluster_list, w, threshold) {
-  labs_new <- character(ncol(scmapCell_results$cells))
-  for (i in seq_len(ncol(scmapCell_results$cells))) {
-    celltypes <- numeric(w)
-    for (j in 1:w) {
-      celltypes[j] <- cluster_list[[scmapCell_results$dataset_inds[j, i]]][scmapCell_results$cells[j, i]]
+  res <- list()
+  for (i in seq_len(length(scmapCell_results))) {
+    cells <- scmapCell_results[[i]]$cells
+    distances <- scmapCell_results[[i]]$distances
+    labs_new <- character(ncol(cells))
+    for (j in seq_len(ncol(cells))) {
+      celltypes <- character(w)
+      for (k in 1:w) {
+        celltypes[k] <- cluster_list[[i]][cells[k, j]]
+      }
+      # only assign the cell-type if the similarity exceeds the threshold and the w nearest neighbours
+      # are the same cell-type
+      if (max(distances[, j]) > threshold & length(unique(celltypes)) == 1) {
+        labs_new[j] <- unique(celltypes)
+      } else {
+        labs_new[j] <- "unassigned"
+      }
     }
-    # only assign the cell-type if the similarity exceeds the threshold and the w nearest neighbours
-    # are the same cell-type
-    if (max(scmapCell_results$distances[, i]) > threshold & length(unique(celltypes)) == 1) {
-      labs_new[i] <- unique(celltypes)
-    } else {
-      labs_new[i] <- "unassigned"
-    }
+    res[[i]] <- labs_new
   }
-  colData(projection)$scmap_cell_labs <- labs_new
-  return(projection)
+  names(res) <- names(scmapCell_results)
+  return(res)
 }
 
 #' @rdname scmapCell2Cluster

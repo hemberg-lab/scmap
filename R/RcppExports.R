@@ -36,29 +36,8 @@ normalise <- function(dat) {
 #' according to the product quantization method
 #' @param M An integer specifying the number of chunks
 #' @param SqNorm A numerical vector containing the Euclidean Squared Norm of each query cell.
-NNfirst <- function(w, k, subcentroids, subclusters, query_chunks, M, SqNorm) {
-    .Call('_scmap_NNfirst', PACKAGE = 'scmap', w, k, subcentroids, subclusters, query_chunks, M, SqNorm)
-}
-
-#' Performs the same operations as NNfirst, but for subsequent reference datasets.
-#' The current best cells and distances are given as inputs and are updated as the reference is searched.
-#' 
-#' @param w An integer specifying the number of nearest neighbours
-#' @param k An integer specifying the number of subcentroids for each product quantization chunk
-#' @param subcentroids A list of matrices containing the subcentroids of each chunk.
-#' @param subclusters A matrix containing the subcentroid assignments of each reference cell. See scf_index.
-#' @param query_chunks A list of matrices containing the chunks of the query dataset after it has been split
-#' according to the product quantization method
-#' @param M An integer specifying the number of chunks
-#' @param SqNorm A numerical vector containing the Euclidean Squared Norm of each query cell.
-#' @param best_cells_so_far A integer matrix containing the cell indices of the nearest neighbours so far.
-#' @param best_distances_so_far A numerical matrix containing the approx. cosine similarities of the 
-#' nearest neighbours so far.
-#' @param dataset_inds An integer matrix containing the dataset indices of the nearest neighbours so far.
-#' @param dat_num The reference dataset number in consideration (i.e. the position of the reference dataset
-#' in the list of references).
-NNmult <- function(w, k, subcentroids, subclusters, query_chunks, M, SqNorm, best_cells_so_far, best_distances_so_far, dataset_inds, dat_num) {
-    .Call('_scmap_NNmult', PACKAGE = 'scmap', w, k, subcentroids, subclusters, query_chunks, M, SqNorm, best_cells_so_far, best_distances_so_far, dataset_inds, dat_num)
+NN <- function(w, k, subcentroids, subclusters, query_chunks, M, SqNorm) {
+    .Call('_scmap_NN', PACKAGE = 'scmap', w, k, subcentroids, subclusters, query_chunks, M, SqNorm)
 }
 
 #' The Euclidean Squared Norm of each column of a matrix is computed and the whole result is returned as a vector.

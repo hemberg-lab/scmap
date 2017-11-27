@@ -9,11 +9,11 @@
 \alias{indexCell}
 \title{Create an index for a dataset to enable fast approximate nearest neighbour search}
 \usage{
-indexCell(object = NULL, M = 100, k = NULL)
+indexCell(object = NULL, M = NULL, k = NULL)
 
 indexCell.SingleCellExperiment(object, M, k)
 
-\S4method{indexCell}{SingleCellExperiment}(object = NULL, M = 100,
+\S4method{indexCell}{SingleCellExperiment}(object = NULL, M = NULL,
   k = NULL)
 }
 \arguments{

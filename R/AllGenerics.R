@@ -76,7 +76,7 @@ setGeneric("indexCluster", signature = "object", function(object = NULL, cluster
 #' sce <- getFeatures(sce)
 #' sce <- indexCell(sce)
 #' 
-setGeneric("indexCell", signature = "object", function(object = NULL, M = 100, k = NULL) {
+setGeneric("indexCell", signature = "object", function(object = NULL, M = NULL, k = NULL) {
   standardGeneric("indexCell")
 })
 
@@ -121,7 +121,7 @@ setGeneric("scmapCluster", signature = "projection", function(projection = NULL,
 #' sce <- indexCell(sce)
 #' scmapCell_results <- scmapCell(sce, sce)
 #' 
-setGeneric("scmapCell", signature = "projection", function(projection = NULL, index_list = NULL, w = 3) {
+setGeneric("scmapCell", signature = "projection", function(projection = NULL, index_list = NULL, w = 10) {
   standardGeneric("scmapCell")
 })
 

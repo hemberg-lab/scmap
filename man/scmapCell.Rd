@@ -10,12 +10,12 @@
 \title{For each cell in a query dataset, we search for the nearest neighbours by cosine distance
 within a collection of reference datasets.}
 \usage{
-scmapCell(projection = NULL, index_list = NULL, w = 3)
+scmapCell(projection = NULL, index_list = NULL, w = 10)
 
 scmapCell.SingleCellExperiment(projection, index_list, w)
 
 \S4method{scmapCell}{SingleCellExperiment}(projection = NULL,
-  index_list = NULL, w = 3)
+  index_list = NULL, w = 10)
 }
 \arguments{
 \item{projection}{an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class}

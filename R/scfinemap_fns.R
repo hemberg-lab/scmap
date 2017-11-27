@@ -52,7 +52,7 @@ mult_search <- function(list_dat, query_dat, w) {
                 query_chunks[[m]] <- query_chunks[[m]][order(rownames(query_chunks[[m]])), ]
             }
             # find the squared Euclidean norm of every query after selecting features
-            SqNorm <- SqNorm + EuclSqNorm(query_chunks[[m]])
+            SqNorm <- SqNorm + scmap:::EuclSqNorm(query_chunks[[m]])
         }
     }
     # compute the w nearest neighbours and their similarities to the queries

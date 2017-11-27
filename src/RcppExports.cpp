@@ -32,9 +32,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// NNfirst
-Rcpp::List NNfirst(const int& w, const int& k, const Rcpp::List& subcentroids, const arma::mat& subclusters, const Rcpp::List& query_chunks, const int& M, const arma::vec& SqNorm);
-RcppExport SEXP _scmap_NNfirst(SEXP wSEXP, SEXP kSEXP, SEXP subcentroidsSEXP, SEXP subclustersSEXP, SEXP query_chunksSEXP, SEXP MSEXP, SEXP SqNormSEXP) {
+// NN
+Rcpp::List NN(const int& w, const int& k, const Rcpp::List& subcentroids, const arma::mat& subclusters, const Rcpp::List& query_chunks, const int& M, const arma::vec& SqNorm);
+RcppExport SEXP _scmap_NN(SEXP wSEXP, SEXP kSEXP, SEXP subcentroidsSEXP, SEXP subclustersSEXP, SEXP query_chunksSEXP, SEXP MSEXP, SEXP SqNormSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -45,28 +45,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::List& >::type query_chunks(query_chunksSEXP);
     Rcpp::traits::input_parameter< const int& >::type M(MSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type SqNorm(SqNormSEXP);
-    rcpp_result_gen = Rcpp::wrap(NNfirst(w, k, subcentroids, subclusters, query_chunks, M, SqNorm));
-    return rcpp_result_gen;
-END_RCPP
-}
-// NNmult
-Rcpp::List NNmult(const int& w, const int& k, const Rcpp::List& subcentroids, const arma::mat& subclusters, const Rcpp::List& query_chunks, const int& M, const arma::vec& SqNorm, const arma::mat& best_cells_so_far, const Rcpp::NumericMatrix& best_distances_so_far, arma::mat dataset_inds, const int& dat_num);
-RcppExport SEXP _scmap_NNmult(SEXP wSEXP, SEXP kSEXP, SEXP subcentroidsSEXP, SEXP subclustersSEXP, SEXP query_chunksSEXP, SEXP MSEXP, SEXP SqNormSEXP, SEXP best_cells_so_farSEXP, SEXP best_distances_so_farSEXP, SEXP dataset_indsSEXP, SEXP dat_numSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const int& >::type w(wSEXP);
-    Rcpp::traits::input_parameter< const int& >::type k(kSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::List& >::type subcentroids(subcentroidsSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type subclusters(subclustersSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::List& >::type query_chunks(query_chunksSEXP);
-    Rcpp::traits::input_parameter< const int& >::type M(MSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type SqNorm(SqNormSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type best_cells_so_far(best_cells_so_farSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type best_distances_so_far(best_distances_so_farSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type dataset_inds(dataset_indsSEXP);
-    Rcpp::traits::input_parameter< const int& >::type dat_num(dat_numSEXP);
-    rcpp_result_gen = Rcpp::wrap(NNmult(w, k, subcentroids, subclusters, query_chunks, M, SqNorm, best_cells_so_far, best_distances_so_far, dataset_inds, dat_num));
+    rcpp_result_gen = Rcpp::wrap(NN(w, k, subcentroids, subclusters, query_chunks, M, SqNorm));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -85,8 +64,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_scmap_subdistsmult", (DL_FUNC) &_scmap_subdistsmult, 5},
     {"_scmap_normalise", (DL_FUNC) &_scmap_normalise, 1},
-    {"_scmap_NNfirst", (DL_FUNC) &_scmap_NNfirst, 7},
-    {"_scmap_NNmult", (DL_FUNC) &_scmap_NNmult, 11},
+    {"_scmap_NN", (DL_FUNC) &_scmap_NN, 7},
     {"_scmap_EuclSqNorm", (DL_FUNC) &_scmap_EuclSqNorm, 1},
     {NULL, NULL, 0}
 };

@@ -57,7 +57,7 @@ arma::mat normalise(const arma::mat& dat) {
 //' @param M An integer specifying the number of chunks
 //' @param SqNorm A numerical vector containing the Euclidean Squared Norm of each query cell.
 // [[Rcpp::export]]
-Rcpp::List NNfirst(const int& w,
+Rcpp::List NN(const int& w,
                 const int& k,
                 const Rcpp::List& subcentroids,
                 const arma::mat& subclusters,
@@ -114,99 +114,8 @@ Rcpp::List NNfirst(const int& w,
     best_distances.column(n) = NN;
   }
   
-  // since this is the first reference dataset, the dataset indices are all set to 1, indicating
-  // that all the nearest neighbours came from the first reference dataset
-  arma::mat dataset_inds = arma::ones(w, numcells);
   return List::create(_["cells"] = best_cells,
-                      _["distances"]   = best_distances,
-                      _["dataset_inds"] = dataset_inds);
-}
-
-//' Performs the same operations as NNfirst, but for subsequent reference datasets.
-//' The current best cells and distances are given as inputs and are updated as the reference is searched.
-//' 
-//' @param w An integer specifying the number of nearest neighbours
-//' @param k An integer specifying the number of subcentroids for each product quantization chunk
-//' @param subcentroids A list of matrices containing the subcentroids of each chunk.
-//' @param subclusters A matrix containing the subcentroid assignments of each reference cell. See scf_index.
-//' @param query_chunks A list of matrices containing the chunks of the query dataset after it has been split
-//' according to the product quantization method
-//' @param M An integer specifying the number of chunks
-//' @param SqNorm A numerical vector containing the Euclidean Squared Norm of each query cell.
-//' @param best_cells_so_far A integer matrix containing the cell indices of the nearest neighbours so far.
-//' @param best_distances_so_far A numerical matrix containing the approx. cosine similarities of the 
-//' nearest neighbours so far.
-//' @param dataset_inds An integer matrix containing the dataset indices of the nearest neighbours so far.
-//' @param dat_num The reference dataset number in consideration (i.e. the position of the reference dataset
-//' in the list of references).
-// [[Rcpp::export]]
-Rcpp::List NNmult(const int& w,
-                  const int& k,
-                  const Rcpp::List& subcentroids,
-                  const arma::mat& subclusters,
-                  const Rcpp::List& query_chunks,
-                  const int& M,
-                  const arma::vec& SqNorm,
-                  const arma::mat& best_cells_so_far,
-                  const Rcpp::NumericMatrix& best_distances_so_far,
-                  arma::mat dataset_inds,
-                  const int& dat_num) {
-  
-  arma::mat dists;
-  arma::Col<double> query;
-  int cols = subclusters.n_cols;
-  int n;
-  arma::mat queryc = query_chunks[0];
-  int numcells = queryc.n_cols;
-  arma::mat best_cells(w, numcells);
-  Rcpp::NumericMatrix best_distances(w, numcells);
-  arma::mat subqueries;
-  arma::vec nn(w); 
-  double celldist;
-  Rcpp::NumericVector NN(w);
-  double best_poss = 0;
-  int ind, r, m, min_index;
-  arma::Col<int> clus_ind = arma::linspace<arma::Col<int> >(1, cols, cols);
-  for (n = 0; n < numcells; n++) {
-    NN = best_distances_so_far.column(n);
-    nn = best_cells_so_far.col(n);
-    dists = subdistsmult(subcentroids, query_chunks, M, k, n);
-    // calculate total distance from best possible comb. of subcentroids
-    for (m = 0; m < M; m++) {
-      best_poss += arma::max(dists.row(m));
-    }
-    if (SqNorm(n) > 0) {
-      best_poss = best_poss/(sqrt(M)*sqrt(SqNorm(n)));
-    }
-    // if the best possible isn't better than what we have already, then skip the search
-    if (best_poss > min(NN)) {
-      for (r = 0; r < cols; r++) {
-        celldist = 0;
-        ind = clus_ind(r);
-        
-        for (m = 0; m < M; m++) {
-          celldist += dists(m, subclusters(m,ind-1)-1);
-        }
-        // only divide through by the Eucl. norm of the query if it is non-zero
-        if (SqNorm(n) > 0) {
-          celldist = celldist/(sqrt(M)*sqrt(SqNorm(n)));
-        }
-        
-        min_index = Rcpp::which_min(NN);
-        if (celldist > NN(min_index)) {
-          nn(min_index) = ind;
-          NN(min_index) = celldist;
-          dataset_inds(min_index, n) = dat_num;
-        }
-          
-      }
-    } 
-    best_cells.col(n) = nn;
-    best_distances.column(n) = NN;
-  }
-  return List::create(_["cells"] = best_cells,
-                      _["distances"]   = best_distances,
-                      _["dataset_inds"] = dataset_inds);
+                      _["distances"]   = best_distances);
 }
 
 //' The Euclidean Squared Norm of each column of a matrix is computed and the whole result is returned as a vector.
