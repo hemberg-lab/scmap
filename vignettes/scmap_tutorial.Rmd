@@ -418,3 +418,9 @@ length(which(scmapCell_clusters$combined_labs == "unassigned"))/
 ## Properties
 
 Comparing the results with the ones for `scmap-cluster`, we conclude that the kappa values are similar to before, while the fraction of unassigned cells is much lower. Thus, for this example, we conclude that `scmap-cell` performs better.
+
+# sessionInfo()
+
+```{r, echo=FALSE}
+sessionInfo()
+```

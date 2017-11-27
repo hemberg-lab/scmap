@@ -264,3 +264,29 @@ dists_subcentroids <- function(proj_exprs, subcentroids) {
   return(list(subcentroids = subcentroids, query_chunks = query_chunks, SqNorm = SqNorm))
 }
 
+order_and_combine_labels <- function(labels, simls) {
+  unassigned_rate_order <- order(
+    unlist(
+      lapply(labels, function(x) {
+        length(x[x == "unassigned"])/length(x)
+      })
+    )
+  )
+  labels <- labels[unassigned_rate_order]
+  simls <- simls[unassigned_rate_order]
+  labels <- do.call(cbind, labels)
+  simls <- do.call(cbind, simls)
+  max_simls_inds <- apply(
+    simls, 1, function(x) {
+      if(!all(is.na(x))) {
+        return(which.max(x))
+      } else {
+        return(NA)
+      }
+    }
+  )
+  inds <- which(!is.na(max_simls_inds))
+  cons_labels <- rep("unassigned", nrow(labels))
+  cons_labels[inds] <- labels[cbind(inds, max_simls_inds[inds])]
+  return(list(scmap_cluster_labs = labels, scmap_cluster_siml = simls, combined_labs = cons_labels))
+}

@@ -365,22 +365,7 @@ scmapCluster.SingleCellExperiment <- function(projection, index_list, threshold)
   }
   names(labels) <- names(index_list)
   names(simls) <- names(index_list)
-  unassigned_rate_order <- order(
-    unlist(
-      lapply(labels, function(x) {
-        length(x[x == "unassigned"])/length(x)
-      })
-    )
-  )
-  labels <- labels[unassigned_rate_order]
-  simls <- simls[unassigned_rate_order]
-  labels <- do.call(cbind, labels)
-  simls <- do.call(cbind, simls)
-  max_simls_inds <- apply(simls, 1, which.max)
-  cons_labels <- labels[cbind(seq_along(max_simls_inds), max_simls_inds)]
-  
-  return(list(scmap_cluster_labs = labels, scmap_cluster_siml = simls, combined_labs = cons_labels))
-}
+  return(order_and_combine_labels(labels, simls))}
 
 #' @rdname scmapCluster
 #' @aliases scmapCluster
@@ -484,21 +469,7 @@ scmapCell2Cluster.SingleCellExperiment <- function(projection, scmapCell_results
   }
   names(labels) <- names(scmapCell_results)
   names(simls) <- names(scmapCell_results)
-  unassigned_rate_order <- order(
-    unlist(
-      lapply(labels, function(x) {
-        length(x[x == "unassigned"])/length(x)
-      })
-    )
-  )
-  labels <- labels[unassigned_rate_order]
-  simls <- simls[unassigned_rate_order]
-  labels <- do.call(cbind, labels)
-  simls <- do.call(cbind, simls)
-  max_simls_inds <- unlist(apply(simls, 1, which.max))
-  cons_labels <- labels[cbind(seq_along(max_simls_inds), max_simls_inds)]
-  
-  return(list(scmap_cluster_labs = labels, scmap_cluster_siml = simls, combined_labs = cons_labels))
+  return(order_and_combine_labels(labels, simls))
 }
 
 #' @rdname scmapCell2Cluster
