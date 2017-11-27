@@ -1,6 +1,6 @@
 ---
 title: "`scmap` tutorial"
-author: "Vladimir Kiselev and Martin Hemberg"
+author: "Vladimir Kiselev, Andrew Yiu and Martin Hemberg"
 date: "`r Sys.Date()`"
 output:
     BiocStyle::html_document:
@@ -407,11 +407,11 @@ length(which(scmapCell_clusters$scmap_cluster_labs[,"muraro"] == "unassigned"))/
 kappa2(
   data.frame(
     colData(baron)$cell_type1,
-    scmapCluster_results$combined_labs
-  )[scmapCluster_results$combined_labs != "unassigned", ]
+    scmapCell_clusters$combined_labs
+  )[scmapCell_clusters$combined_labs != "unassigned", ]
 )$value
 
-length(which(scmapCluster_results$combined_labs == "unassigned"))/
+length(which(scmapCell_clusters$combined_labs == "unassigned"))/
   ncol(baron)*100
 ```
 
