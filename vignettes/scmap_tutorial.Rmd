@@ -12,9 +12,7 @@ vignette: >
 ---
 
 ```{r knitr-options, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
-library(knitr)
 library(googleVis)
-opts_chunk$set(fig.align = 'center')
 op <- options(gvis.plot.tag='chart')
 ```
 
@@ -336,46 +334,85 @@ scmapCell_clusters <- scmapCell2Cluster(
 )
 ```
 
+`scmap-cell` results are in the same format as the ones provided by `scmap-cluster` (see above):
+
+```{r}
+head(scmapCell_clusters$scmap_cluster_labs)
+```
+
+Corresponding similarities are stored in the `scmap_cluster_siml` item:
+```{r}
+head(scmapCell_clusters$scmap_cluster_siml)
+```
+
+```{r}
+head(scmapCell_clusters$combined_labs)
+```
+
 ## Visualisation
+
 ```{r results='asis', tidy=FALSE}
 plot(
   getSankey(
     colData(baron)$cell_type1, 
-    scmapCell_clusters$xin,
+    scmapCell_clusters$scmap_cluster_labs[,"xin"],
+    plot_height = 400
+  )
+)
+```
+
+```{r results='asis', tidy=FALSE}
+plot(
+  getSankey(
+    colData(baron)$cell_type1, 
+    scmapCell_clusters$combined_labs,
     plot_height = 400
   )
 )
 ```
 
 ## Quantification
+
 ```{r}
 kappa2(
   data.frame(
-    as.character(colData(baron)$cell_type1),
-    scmapCell_clusters$xin
-  )[scmapCell_clusters$xin != "unassigned", ]
+    colData(baron)$cell_type1,
+    scmapCell_clusters$scmap_cluster_labs[,"xin"]
+  )[scmapCell_clusters$scmap_cluster_labs[,"xin"] != "unassigned", ]
 )$value
 
-length(scmapCell_clusters$xin[scmapCell_clusters$xin != "unassigned"])/length(scmapCell_clusters$xin)*100
+length(which(scmapCell_clusters$scmap_cluster_labs[,"xin"] == "unassigned"))/
+  ncol(baron)*100
 
 kappa2(
   data.frame(
-    as.character(colData(baron)$cell_type1),
-    scmapCell_clusters$segerstolpe
-  )[scmapCell_clusters$segerstolpe != "unassigned", ]
+    colData(baron)$cell_type1,
+    scmapCell_clusters$scmap_cluster_labs[,"segerstolpe"]
+  )[scmapCell_clusters$scmap_cluster_labs[,"segerstolpe"] != "unassigned", ]
 )$value
 
-length(scmapCell_clusters$segerstolpe[scmapCell_clusters$segerstolpe != "unassigned"])/length(scmapCell_clusters$segerstolpe)*100
+length(which(scmapCell_clusters$scmap_cluster_labs[,"segerstolpe"] == "unassigned"))/
+  ncol(baron)*100
 
 kappa2(
   data.frame(
-    as.character(colData(baron)$cell_type1),
-    scmapCell_clusters$muraro
-  )[scmapCell_clusters$muraro != "unassigned", ]
+    colData(baron)$cell_type1,
+    scmapCell_clusters$scmap_cluster_labs[,"muraro"]
+  )[scmapCell_clusters$scmap_cluster_labs[,"muraro"] != "unassigned", ]
 )$value
 
-length(scmapCell_clusters$muraro[scmapCell_clusters$muraro != "unassigned"])/length(scmapCell_clusters$xin)*100
+length(which(scmapCell_clusters$scmap_cluster_labs[,"muraro"] == "unassigned"))/
+  ncol(baron)*100
 
+kappa2(
+  data.frame(
+    colData(baron)$cell_type1,
+    scmapCluster_results$combined_labs
+  )[scmapCluster_results$combined_labs != "unassigned", ]
+)$value
+
+length(which(scmapCluster_results$combined_labs == "unassigned"))/
+  ncol(baron)*100
 ```
 
 ## Properties

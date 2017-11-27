@@ -457,11 +457,13 @@ setMethod("scmapCell", "SingleCellExperiment", scmapCell.SingleCellExperiment)
 #' @useDynLib scmap
 #' @importFrom Rcpp sourceCpp
 scmapCell2Cluster.SingleCellExperiment <- function(projection, scmapCell_results, cluster_list, w, threshold) {
-  res <- list()
+  labels <- list()
+  simls <- list()
   for (i in seq_len(length(scmapCell_results))) {
     cells <- scmapCell_results[[i]]$cells
     similarities <- scmapCell_results[[i]]$similarities
     labs_new <- character(ncol(cells))
+    similarities_new <- numeric(ncol(cells))
     for (j in seq_len(ncol(cells))) {
       celltypes <- character(w)
       for (k in 1:w) {
@@ -471,14 +473,32 @@ scmapCell2Cluster.SingleCellExperiment <- function(projection, scmapCell_results
       # are the same cell-type
       if (max(similarities[, j]) > threshold & length(unique(celltypes)) == 1) {
         labs_new[j] <- unique(celltypes)
+        similarities_new[j] <- max(similarities[, j])
       } else {
         labs_new[j] <- "unassigned"
+        similarities_new[j] <- NA
       }
     }
-    res[[i]] <- labs_new
+    labels[[i]] <- labs_new
+    simls[[i]] <- similarities_new
   }
-  names(res) <- names(scmapCell_results)
-  return(res)
+  names(labels) <- names(scmapCell_results)
+  names(simls) <- names(scmapCell_results)
+  unassigned_rate_order <- order(
+    unlist(
+      lapply(labels, function(x) {
+        length(x[x == "unassigned"])/length(x)
+      })
+    )
+  )
+  labels <- labels[unassigned_rate_order]
+  simls <- simls[unassigned_rate_order]
+  labels <- do.call(cbind, labels)
+  simls <- do.call(cbind, simls)
+  max_simls_inds <- unlist(apply(simls, 1, which.max))
+  cons_labels <- labels[cbind(seq_along(max_simls_inds), max_simls_inds)]
+  
+  return(list(scmap_cluster_labs = labels, scmap_cluster_siml = simls, combined_labs = cons_labels))
 }
 
 #' @rdname scmapCell2Cluster
