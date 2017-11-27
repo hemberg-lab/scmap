@@ -41,7 +41,7 @@ rowData(sce)$feature_symbol <- rownames(sce)
 isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 # remove features with duplicated names
 sce <- sce[!duplicated(rownames(sce)), ]
-sce <- getFeatures(sce)
-reference <- indexCluster(sce[rowData(sce)$scmap_features, ])
+sce <- selectFeatures(sce)
+sce <- indexCluster(sce[rowData(sce)$scmap_features, ])
 
 }

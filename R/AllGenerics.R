@@ -52,8 +52,8 @@ setGeneric("setFeatures", signature = "object", function(object, features = NULL
 #' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
-#' sce <- getFeatures(sce)
-#' reference <- indexCluster(sce[rowData(sce)$scmap_features, ])
+#' sce <- selectFeatures(sce)
+#' sce <- indexCluster(sce[rowData(sce)$scmap_features, ])
 #' 
 setGeneric("indexCluster", signature = "object", function(object = NULL, cluster_col = "cell_type1") {
     standardGeneric("indexCluster")
@@ -73,7 +73,7 @@ setGeneric("indexCluster", signature = "object", function(object = NULL, cluster
 #' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
-#' sce <- getFeatures(sce)
+#' sce <- selectFeatures(sce)
 #' sce <- indexCell(sce)
 #' 
 setGeneric("indexCell", signature = "object", function(object = NULL, M = NULL, k = NULL) {
@@ -94,9 +94,9 @@ setGeneric("indexCell", signature = "object", function(object = NULL, M = NULL, 
 #' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
-#' sce <- getFeatures(sce)
+#' sce <- selectFeatures(sce)
 #' sce <- indexCluster(sce)
-#' sce <- scmapCluster(sce, sce)
+#' sce <- scmapCluster(sce, list(metadata(sce)$scmap_cluster_index))
 #' 
 setGeneric("scmapCluster", signature = "projection", function(projection = NULL, index_list = NULL, 
                                                               threshold = 0.7) {
@@ -117,9 +117,9 @@ setGeneric("scmapCluster", signature = "projection", function(projection = NULL,
 #' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
-#' sce <- getFeatures(sce)
+#' sce <- selectFeatures(sce)
 #' sce <- indexCell(sce)
-#' scmapCell_results <- scmapCell(sce, sce)
+#' scmapCell_results <- scmapCell(sce, list(metadata(sce)$scmap_cell_index))
 #' 
 setGeneric("scmapCell", signature = "projection", function(projection = NULL, index_list = NULL, w = 10) {
   standardGeneric("scmapCell")
@@ -139,9 +139,9 @@ setGeneric("scmapCell", signature = "projection", function(projection = NULL, in
 #' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
-#' sce <- getFeatures(sce)
+#' sce <- selectFeatures(sce)
 #' sce <- indexCell(sce)
-#' scmapCell_results <- scmapCell(sce, sce)
+#' scmapCell_results <- scmapCell(sce, list(metadata(sce)$scmap_cell_index))
 #' sce <- scmapCell2Cluster(sce, scmapCell_results, cluster_list = list(colData(sce)$cell_type1))
 #' 
 setGeneric("scmapCell2Cluster", signature = "projection", function(projection = NULL, scmapCell_results = NULL, cluster_list = NULL, w = 3, threshold = 0.5) {

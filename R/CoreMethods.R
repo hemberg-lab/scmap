@@ -119,6 +119,7 @@ setMethod("setFeatures", "SingleCellExperiment", setFeatures.SingleCellExperimen
 #' the Reference dataset
 #'
 #' @importFrom SummarizedExperiment rowData colData
+#' @importFrom S4Vectors metadata metadata<-
 #' @importFrom dplyr group_by summarise %>%
 #' @importFrom reshape2 melt dcast
 #' @importFrom stats median
@@ -176,6 +177,7 @@ setMethod("indexCluster", "SingleCellExperiment", indexCluster.SingleCellExperim
 #' @name indexCell
 #' 
 #' @importFrom SummarizedExperiment rowData rowData<-
+#' @importFrom S4Vectors metadata metadata<-
 #' @importFrom SingleCellExperiment logcounts logcounts<-
 #' @importFrom stats kmeans
 #' 
