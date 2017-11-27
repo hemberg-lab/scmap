@@ -14,7 +14,7 @@ vignette: >
 ```{r knitr-options, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
 library(knitr)
 library(googleVis)
-opts_chunk$set(fig.align = 'center', fig.width = 6, fig.height = 7)
+opts_chunk$set(fig.align = 'center')
 op <- options(gvis.plot.tag='chart')
 ```
 
@@ -61,7 +61,7 @@ In the following chapters we will be projecting `baron` dataset to the others us
 # Feature selection
 
 Now we will load `scmap` and for all of the reference datasets select the most informative features (genes) using the dropout feature selection method (Fig. S1a):
-```{r}
+```{r fig.height=6}
 library(scmap)
 xin <- selectFeatures(xin, suppress_plot = FALSE)
 segerstolpe <- selectFeatures(segerstolpe, suppress_plot = FALSE)
@@ -87,7 +87,7 @@ muraro <- indexCluster(muraro)
 ```
 
 The function `indexCluster` automatically writes the `scmap_cluster` item of the `metadata` slot of the reference dataset. The index can be visualized as a heatmap:
-```{r}
+```{r fig.height=8}
 library(pheatmap)
 pheatmap(metadata(xin)$scmap_cluster_index, show_rownames = FALSE)
 pheatmap(metadata(segerstolpe)$scmap_cluster_index, show_rownames = FALSE)
@@ -137,7 +137,7 @@ plot(
   getSankey(
     colData(baron)$cell_type1, 
     scmapCluster_results$scmap_cluster_labs[,"xin"],
-    plot_height = 300
+    plot_height = 400
   )
 )
 ```
@@ -148,7 +148,7 @@ plot(
   getSankey(
     colData(baron)$cell_type1, 
     scmapCluster_results$combined_labs,
-    plot_height = 300
+    plot_height = 400
   )
 )
 ```
@@ -215,7 +215,7 @@ length(which(scmapCluster_results$combined_labs == "unassigned"))/
 
 Next, we ask what properties of the datasets determine the quality of the projection. We start by comparing the number of expressed features (per cell):
 
-```{r}
+```{r fig.height=6}
 n_features_xin <- colSums(logcounts(xin) != 0)
 n_features_muraro <- colSums(logcounts(muraro) != 0)
 n_features_segerstolpe <- colSums(logcounts(segerstolpe) != 0)
@@ -234,59 +234,121 @@ Clearly, `baron` has far fewer genes detected than the other three datasets. In 
 
 # scmap-cell
 
-## Index
+## Stochasticity
 
-Finally, we use `scmap-cell` to carry out the projections.
+`scmap-cell` contains k-means step which makes it stochastic, i.e. running it multiple times will provide slightly different results. Therefore, we will fix a random seed, so that a user will be able to exactly reproduce our results:
 
 ```{r}
+set.seed(1)
+```
+
+
+## Index
+
+In the `scmap-cell` index is created by a product quantiser algorithm in a way that every cell in the reference is identified with a set of sub-centroids found via k-means clustering based on a subset of the features.
+
+```{r message=FALSE, warning=FALSE}
 xin <- indexCell(xin)
 segerstolpe <- indexCell(segerstolpe)
 muraro <- indexCell(muraro)
 ```
 
+Unlike `scmap-cluster` index `scmap-cell` index contains information about each cell and therefore can not be easily visualised. `scmap-cell` index consists of two items:
+
+```{r}
+names(metadata(muraro)$scmap_cell_index)
+```
+
+### Sub-centroids
+
+`subcentroids` contains coordinates of subcentroids of low dimensional subspaces defined by selected features, `k` and `M` parameters of the product quantiser algorithm (see `?indexCell`). 
+
+```{r}
+length(metadata(muraro)$scmap_cell_index$subcentroids)
+dim(metadata(muraro)$scmap_cell_index$subcentroids[[1]])
+metadata(muraro)$scmap_cell_index$subcentroids[[1]][,1:5]
+```
+
+In the case of `muraro` dataset:
+
+* `muraro` dataset contains $N = 2126$ cells
+* We selected $f = 500$ features (`scmap` default)
+* `M` was calculated as $f / 10 = 50$ (`scmap` default for $f \le 1000$)
+* Number of low dimensional subspaces equals to $f / M = 10$
+* `k` was calculated as $k = \sqrt{N} \approx 46$ (`scmap` default). 
+
+### Sub-clusters
+
+`subclusters` contains for every low dimensial subspace indexies of `subcentroids` which a given cell belongs to:
+
+```{r}
+dim(metadata(muraro)$scmap_cell_index$subclusters)
+metadata(muraro)$scmap_cell_index$subclusters[1:5,1:5]
+```
+
 ## Projection
+
+Once the `scmap-cell` indexes have been generated we can use them to project the `baron` dataset. This can be done with one index at a time, but `scmap` allows for simultaneous projection to multiple indexes if they are provided as a list:
 
 ```{r}
 scmapCell_results <- scmapCell(
   baron, 
   list(
-    muraro = metadata(muraro)$scmap_cell_index,
     xin = metadata(xin)$scmap_cell_index,
-    segerstolpe = metadata(segerstolpe)$scmap_cell_index
+    segerstolpe = metadata(segerstolpe)$scmap_cell_index,
+    muraro = metadata(muraro)$scmap_cell_index
   )
 )
 ```
 
+## Results
+
+`scmapCell_results` contains results of projection for each reference dataset in a list:
+```{r}
+names(scmapCell_results)
+```
+
+For each dataset there are two matricies. `cells` matrix contains the top 10 (`scmap` default) cell IDs of the cells of the reference dataset that a given cell of the projection dataset is closest to:
+
+```{r}
+scmapCell_results$xin$cells[,1:3]
+```
+
+`similarities` matrix contains corresponding cosine similarities:
+
+```{r}
+scmapCell_results$xin$similarities[,1:3]
+```
+
 ## Cluster annotation
+
+If cell cluster annotation is available for the reference datasets, in addition to finding top 10 nearest neighbours `scmap-cell` also allows to annotate cells of the projection dataset using labels of the reference. It does so by looking at the top 3 nearest neighbours (`scmap` default) and if they all belong to the same cluster in the reference and their maximum similarity is higher than a threshold ($0.5$ is the `scmap` default) a projection cell is assigned to a corresponding reference cluster:
 
 ```{r}
 scmapCell_clusters <- scmapCell2Cluster(
   baron, 
   scmapCell_results, 
   list(
-    colData(muraro)$cell_type1,
     colData(xin)$cell_type1,
-    colData(segerstolpe)$cell_type1
+    colData(segerstolpe)$cell_type1,
+    colData(muraro)$cell_type1
   )
 )
 ```
 
 ## Visualisation
-```{r}
-# plot(getSankey(colData(baron)$cell_type1, scmapCell_clusters$muraro))
+```{r results='asis', tidy=FALSE}
+plot(
+  getSankey(
+    colData(baron)$cell_type1, 
+    scmapCell_clusters$xin,
+    plot_height = 400
+  )
+)
 ```
 
 ## Quantification
 ```{r}
-kappa2(
-  data.frame(
-    as.character(colData(baron)$cell_type1),
-    scmapCell_clusters$segerstolpe
-  )[scmapCell_clusters$segerstolpe != "unassigned", ]
-)$value
-
-length(scmapCell_clusters$segerstolpe[scmapCell_clusters$segerstolpe != "unassigned"])/length(scmapCell_clusters$segerstolpe)*100
-
 kappa2(
   data.frame(
     as.character(colData(baron)$cell_type1),
@@ -295,6 +357,15 @@ kappa2(
 )$value
 
 length(scmapCell_clusters$xin[scmapCell_clusters$xin != "unassigned"])/length(scmapCell_clusters$xin)*100
+
+kappa2(
+  data.frame(
+    as.character(colData(baron)$cell_type1),
+    scmapCell_clusters$segerstolpe
+  )[scmapCell_clusters$segerstolpe != "unassigned", ]
+)$value
+
+length(scmapCell_clusters$segerstolpe[scmapCell_clusters$segerstolpe != "unassigned"])/length(scmapCell_clusters$segerstolpe)*100
 
 kappa2(
   data.frame(

@@ -460,7 +460,7 @@ scmapCell2Cluster.SingleCellExperiment <- function(projection, scmapCell_results
   res <- list()
   for (i in seq_len(length(scmapCell_results))) {
     cells <- scmapCell_results[[i]]$cells
-    distances <- scmapCell_results[[i]]$distances
+    similarities <- scmapCell_results[[i]]$similarities
     labs_new <- character(ncol(cells))
     for (j in seq_len(ncol(cells))) {
       celltypes <- character(w)
@@ -469,7 +469,7 @@ scmapCell2Cluster.SingleCellExperiment <- function(projection, scmapCell_results
       }
       # only assign the cell-type if the similarity exceeds the threshold and the w nearest neighbours
       # are the same cell-type
-      if (max(distances[, j]) > threshold & length(unique(celltypes)) == 1) {
+      if (max(similarities[, j]) > threshold & length(unique(celltypes)) == 1) {
         labs_new[j] <- unique(celltypes)
       } else {
         labs_new[j] <- "unassigned"

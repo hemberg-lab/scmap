@@ -5,8 +5,7 @@
 \title{Main nearest neighbour calculation function. Used on the first reference dataset.
 Returns a list of three objects:
 1) the cell indices of the w nearest neighbours
-2) the corresponding approx. cosine similarities
-3) the corresponding datasets they came from (in this case, the first dataset only)}
+2) the corresponding approx. cosine similarities}
 \usage{
 NN(w, k, subcentroids, subclusters, query_chunks, M, SqNorm)
 }
@@ -31,5 +30,4 @@ Main nearest neighbour calculation function. Used on the first reference dataset
 Returns a list of three objects:
 1) the cell indices of the w nearest neighbours
 2) the corresponding approx. cosine similarities
-3) the corresponding datasets they came from (in this case, the first dataset only)
 }
