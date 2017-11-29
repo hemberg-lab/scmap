@@ -120,7 +120,7 @@ head(scmapCluster_results$combined_labs)
 
 The results of `scmap-cluster` can be visualized as a Sankey diagram to show how cell-clusters are matched (`getSankey()` function). Note that the Sankey diagram will only be informative if both the query and the reference datasets have been clustered, but it is not necessary to have meaningful labels assigned to the query (`cluster1`, `cluster2` etc. is sufficient):
 
-```{r results='asis', tidy=FALSE}
+```{r results='asis', tidy=FALSE, eval=FALSE}
 plot(
   getSankey(
     colData(sce)$cell_type1, 
@@ -246,7 +246,7 @@ head(scmapCell_clusters$combined_labs)
 
 ## Visualisation
 
-```{r results='asis', tidy=FALSE}
+```{r results='asis', tidy=FALSE, eval=FALSE}
 plot(
   getSankey(
     colData(sce)$cell_type1, 
