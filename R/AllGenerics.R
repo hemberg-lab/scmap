@@ -142,9 +142,9 @@ setGeneric("scmapCell", signature = "projection", function(projection = NULL, in
 #' sce <- selectFeatures(sce)
 #' sce <- indexCell(sce)
 #' scmapCell_results <- scmapCell(sce, list(metadata(sce)$scmap_cell_index))
-#' sce <- scmapCell2Cluster(sce, scmapCell_results, cluster_list = list(colData(sce)$cell_type1))
+#' sce <- scmapCell2Cluster(scmapCell_results, cluster_list = list(colData(sce)$cell_type1))
 #' 
-setGeneric("scmapCell2Cluster", signature = "projection", function(projection = NULL, scmapCell_results = NULL, cluster_list = NULL, w = 3, threshold = 0.5) {
+setGeneric("scmapCell2Cluster", signature = "scmapCell_results", function(scmapCell_results = NULL, cluster_list = NULL, w = 3, threshold = 0.5) {
   standardGeneric("scmapCell2Cluster")
 })
 

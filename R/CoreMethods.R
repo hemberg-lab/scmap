@@ -428,7 +428,6 @@ setMethod("scmapCell", "SingleCellExperiment", scmapCell.SingleCellExperiment)
 #' nearest neighbour exceeds a threshold AND its w nearest neighbours have the 
 #' same cell-type. 
 #' 
-#' @param projection an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class
 #' @param scmapCell_results the output of `scmapCell()` with `projection` as its input.
 #' @param cluster_list list of cell cluster labels correspondint to each index against which the `projection` has been projected 
 #' @param w an integer specifying the number of nearest neighbours to find
@@ -443,7 +442,7 @@ setMethod("scmapCell", "SingleCellExperiment", scmapCell.SingleCellExperiment)
 #' 
 #' @useDynLib scmap
 #' @importFrom Rcpp sourceCpp
-scmapCell2Cluster.SingleCellExperiment <- function(projection, scmapCell_results, cluster_list, w, threshold) {
+scmapCell2Cluster.SingleCellExperiment <- function(scmapCell_results, cluster_list, w, threshold) {
   labels <- list()
   simls <- list()
   for (i in seq_len(length(scmapCell_results))) {
