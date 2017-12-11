@@ -5,22 +5,20 @@
 \alias{scmapCell2Cluster}
 \alias{scmapCell2Cluster}
 \alias{scmapCell2Cluster.SingleCellExperiment}
-\alias{scmapCell2Cluster,SingleCellExperiment-method}
+\alias{scmapCell2Cluster,list-method}
 \alias{scmapCell2Cluster}
 \title{Approximate k-NN cell-type classification using scfinemap}
 \usage{
-scmapCell2Cluster(projection = NULL, scmapCell_results = NULL,
+scmapCell2Cluster(scmapCell_results = NULL, cluster_list = NULL, w = 3,
+  threshold = 0.5)
+
+scmapCell2Cluster.SingleCellExperiment(scmapCell_results, cluster_list, w,
+  threshold)
+
+\S4method{scmapCell2Cluster}{list}(scmapCell_results = NULL,
   cluster_list = NULL, w = 3, threshold = 0.5)
-
-scmapCell2Cluster.SingleCellExperiment(projection, scmapCell_results,
-  cluster_list, w, threshold)
-
-\S4method{scmapCell2Cluster}{SingleCellExperiment}(projection = NULL,
-  scmapCell_results = NULL, cluster_list = NULL, w = 3, threshold = 0.5)
 }
 \arguments{
-\item{projection}{an object of \code{\link[SingleCellExperiment]{SingleCellExperiment}} class}
-
 \item{scmapCell_results}{the output of `scmapCell()` with `projection` as its input.}
 
 \item{cluster_list}{list of cell cluster labels correspondint to each index against which the `projection` has been projected}
@@ -53,6 +51,6 @@ sce <- sce[!duplicated(rownames(sce)), ]
 sce <- selectFeatures(sce)
 sce <- indexCell(sce)
 scmapCell_results <- scmapCell(sce, list(metadata(sce)$scmap_cell_index))
-sce <- scmapCell2Cluster(sce, scmapCell_results, cluster_list = list(colData(sce)$cell_type1))
+sce <- scmapCell2Cluster(scmapCell_results, cluster_list = list(colData(sce)$cell_type1))
 
 }

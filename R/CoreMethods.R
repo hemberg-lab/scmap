@@ -475,4 +475,4 @@ scmapCell2Cluster.SingleCellExperiment <- function(scmapCell_results, cluster_li
 
 #' @rdname scmapCell2Cluster
 #' @aliases scmapCell2Cluster
-setMethod("scmapCell2Cluster", "SingleCellExperiment", scmapCell2Cluster.SingleCellExperiment)
+setMethod("scmapCell2Cluster", "list", scmapCell2Cluster.SingleCellExperiment)
