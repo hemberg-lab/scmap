@@ -133,7 +133,7 @@ indexCluster.SingleCellExperiment <- function(object, cluster_col) {
     }
     tmp <- object[rowData(object)$scmap_features, ]
     gene <- cell_class <- exprs <- NULL
-    exprs_mat <- logcounts(tmp)
+    exprs_mat <- as.matrix(logcounts(tmp))
     rownames(exprs_mat) <- as.data.frame(rowData(tmp))$feature_symbol
     colnames(exprs_mat) <- as.data.frame(colData(tmp))[[cluster_col]]
     
@@ -203,7 +203,7 @@ indexCell.SingleCellExperiment <- function(object, M, k) {
   }
   
   tmp <- object[rowData(object)$scmap_features, ]
-  exprs_mat <- logcounts(tmp)
+  exprs_mat <- as.matrix(logcounts(tmp))
   rownames(exprs_mat) <- as.data.frame(rowData(tmp))$feature_symbol
   features <- rownames(exprs_mat)
   
@@ -299,7 +299,7 @@ scmapCluster.SingleCellExperiment <- function(projection, index_list, threshold)
     }  
     
     # get expression values of the projection dataset
-    proj_exprs <- logcounts(tmp)
+    proj_exprs <- as.matrix(logcounts(tmp))
     rownames(proj_exprs) <- rowData(tmp)$feature_symbol
     
     # prepare projection dataset
@@ -402,7 +402,7 @@ scmapCell.SingleCellExperiment <- function(projection, index_list, w) {
     subcentroids <- index$subcentroids
     subclusters <- index$subclusters
     
-    proj_exprs <- logcounts(projection)
+    proj_exprs <- as.matrix(logcounts(projection))
     rownames(proj_exprs) <- rowData(projection)$feature_symbol
     
     dists <- dists_subcentroids(proj_exprs, subcentroids)
