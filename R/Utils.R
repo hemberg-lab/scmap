@@ -141,13 +141,13 @@ random_forest <- function(train, study, ntree = 50) {
 #' @importFrom SummarizedExperiment assayNames
 #' @importFrom BiocGenerics counts
 linearModel <- function(object, n_features) {
-    log_count <- logcounts(object)
+    log_count <- as.matrix(logcounts(object))
     cols <- ncol(log_count)
     if (!"counts" %in% assayNames(object)) {
         warning("Your object does not contain counts() slot. Dropouts were calculated using logcounts() slot...")
         dropouts <- rowSums(log_count == 0)/cols * 100
     } else {
-        count <- counts(object)
+        count <- as.matrix(counts(object))
         dropouts <- rowSums(count == 0)/cols * 100
     }
     # do not consider spikes and genes with 0 and 100 dropout rate
