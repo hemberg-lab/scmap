@@ -1,7 +1,7 @@
 Package: scmap
 Type: Package
 Title: A tool for unsupervised projection of single cell RNA-seq data
-Version: 1.5.0
+Version: 1.5.1
 Author: Vladimir Kiselev
 Maintainer: Vladimir Kiselev <vladimir.yu.kiselev@gmail.com>
 Authors@R: c(person("Vladimir", "Kiselev",
@@ -46,7 +46,7 @@ RoxygenNote: 6.0.1
 Suggests: knitr,
     rmarkdown
 VignetteBuilder: knitr
-biocViews: SingleCell, Software, Classification,
+biocViews: ImmunoOncology, SingleCell, Software, Classification,
             SupportVectorMachine, RNASeq, Visualization, Transcriptomics, 
             DataRepresentation, Transcription, Sequencing,
             Preprocessing, GeneExpression, DataImport
