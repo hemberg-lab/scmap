@@ -1,7 +1,7 @@
 Package: scmap
 Type: Package
 Title: A tool for unsupervised projection of single cell RNA-seq data
-Version: 1.6.0
+Version: 1.7.0
 Author: Vladimir Kiselev
 Maintainer: Vladimir Kiselev <vladimir.yu.kiselev@gmail.com>
 Authors@R: c(person("Vladimir", "Kiselev",
