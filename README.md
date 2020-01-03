@@ -26,7 +26,7 @@ __Q__: Where can I ask questions about __scmap__?
 __A__: Please use [this page](https://support.bioconductor.org/p/new/post/?tag_val=scmap).
 
 __Q__: Is __scmap__ published?  
-__A__: Not yet, but a copy of __scmap__ manuscript is available on [bioRxiv](http://doi.org/10.1101/150292).
+__A__: Yes, it is published in [Nature Methods](https://www.nature.com/articles/nmeth.4644).
 
 __Q__: What is __scmap__ licence?  
 __A__: GPL-3
