@@ -1,14 +1,15 @@
 citHeader("To cite scmap in publications use:")
 
 citEntry(entry="article",
-         title = "scmap - A tool for unsupervised projection of single cell RNA-seq data",
+         title = "scmap: projection of single-cell RNA-seq data across data sets",
          author = personList( as.person("Vladimir Yu. Kiselev"),
+                              as.person("Andrew Yiu"),
                               as.person("Martin Hemberg")),
-         year = 2017,
-         journal = "bioRxiv",
-         url = "http://doi.org/10.1101/150292",
+         year = 2018,
+         journal = "Nature Methods",
+         url = "https://www.nature.com/articles/nmeth.4644",
          textVersion = 
-         paste("Vladimir Yu. Kiselev, Martin Hemberg (2017): ", 
-               "scmap - A tool for unsupervised projection of single cell RNA-seq data. ",
-               "bioRxiv, ",
-                "URL: http://doi.org/10.1101/150292" ) )
+         paste("Vladimir Yu. Kiselev, Andrew Yiu, Martin Hemberg (2018): ", 
+               "scmap: projection of single-cell RNA-seq data across data sets. ",
+               "Nature Methods, ",
+                "URL: https://www.nature.com/articles/nmeth.4644" ) )
