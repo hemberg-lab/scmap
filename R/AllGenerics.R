@@ -9,7 +9,6 @@
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- selectFeatures(sce)
@@ -29,7 +28,6 @@ setGeneric("selectFeatures", signature = "object", function(object, n_features =
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- setFeatures(sce, c('MMP2', 'ZHX3'))
@@ -49,7 +47,6 @@ setGeneric("setFeatures", signature = "object", function(object, features = NULL
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- selectFeatures(sce)
@@ -70,7 +67,6 @@ setGeneric("indexCluster", signature = "object", function(object = NULL, cluster
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- selectFeatures(sce)
@@ -91,7 +87,6 @@ setGeneric("indexCell", signature = "object", function(object = NULL, M = NULL, 
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- selectFeatures(sce)
@@ -114,7 +109,6 @@ setGeneric("scmapCluster", signature = "projection", function(projection = NULL,
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- selectFeatures(sce)
@@ -136,7 +130,6 @@ setGeneric("scmapCell", signature = "projection", function(projection = NULL, in
 #' logcounts(sce) <- log2(normcounts(sce) + 1)
 #' # use gene names as feature symbols
 #' rowData(sce)$feature_symbol <- rownames(sce)
-#' isSpike(sce, 'ERCC') <- grepl('^ERCC-', rownames(sce))
 #' # remove features with duplicated names
 #' sce <- sce[!duplicated(rownames(sce)), ]
 #' sce <- selectFeatures(sce)

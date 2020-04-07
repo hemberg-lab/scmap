@@ -137,7 +137,7 @@ random_forest <- function(train, study, ntree = 50) {
 
 #' @importFrom utils head
 #' @importFrom stats lm
-#' @importFrom SingleCellExperiment logcounts isSpike spikeNames
+#' @importFrom SingleCellExperiment logcounts spikeNames
 #' @importFrom SummarizedExperiment assayNames
 #' @importFrom BiocGenerics counts
 linearModel <- function(object, n_features) {
@@ -152,11 +152,6 @@ linearModel <- function(object, n_features) {
     }
     # do not consider spikes and genes with 0 and 100 dropout rate
     dropouts_filter <- dropouts != 0 & dropouts != 100
-    if (!is.null(isSpike(object))) {
-        for (spikes in spikeNames(object)) {
-            dropouts_filter <- as.logical(dropouts_filter * (!isSpike(object, spikes)))
-        }
-    }
     dropouts_filter <- which(dropouts_filter)
     dropouts <- log2(dropouts[dropouts_filter])
     expression <- rowSums(log_count[dropouts_filter, ])/cols
