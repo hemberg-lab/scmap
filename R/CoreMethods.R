@@ -451,6 +451,8 @@ scmapCell2Cluster.SingleCellExperiment <- function(scmapCell_results, cluster_li
     labs_new <- character(ncol(cells))
     similarities_new <- numeric(ncol(cells))
     for (j in seq_len(ncol(cells))) {
+      similarities[, j] = sort(similarities[, j], decreasing = TRUE)
+      cells[, j] = cells[, j][sort(similarities[, j], decreasing = TRUE, index.return = TRUE)$ix]
       celltypes <- character(w)
       for (k in 1:w) {
         celltypes[k] <- cluster_list[[i]][cells[k, j]]
